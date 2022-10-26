@@ -1,3 +1,4 @@
+use crossterm::terminal::enable_raw_mode;
 use std::io::Stdout;
 use std::sync::mpsc::Receiver;
 use std::thread;
@@ -37,10 +38,13 @@ fn timer_view(terminal: &mut Terminal<CrosstermBackend<Stdout>>, timer: &str) {
         .unwrap();
 }
 
-pub fn render_thread(
-    mut terminal: Terminal<CrosstermBackend<Stdout>>,
-    view_receiver: Receiver<TerminalEvent>,
-) {
+pub fn render_thread(view_receiver: Receiver<TerminalEvent>) {
+    enable_raw_mode().expect("Can run in raw mode");
+    let stdout = std::io::stdout();
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend).expect("Terminal could be created");
+    terminal.clear().expect("Terminal could be cleared");
+
     thread::spawn(move || loop {
         match view_receiver.recv() {
             Ok(TerminalEvent::View(string)) => {
