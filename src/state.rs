@@ -118,12 +118,13 @@ impl PomodoroTimer<RunningTimer> {
                     self.state.view_sender.send(TerminalEvent::Quit).unwrap();
                 }
                 AppAction::PlayPause => {
-                    self.pause();
-                    break;
+                    return self.pause();
                 }
                 AppAction::None => {}
             }
         }
+
+        self.state.view_sender.send(TerminalEvent::Quit).unwrap();
     }
 
     fn pause(self) {

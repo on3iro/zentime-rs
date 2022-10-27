@@ -38,7 +38,7 @@ fn timer_view(terminal: &mut Terminal<CrosstermBackend<Stdout>>, timer: &str) {
         .unwrap();
 }
 
-pub fn render_thread(view_receiver: Receiver<TerminalEvent>) {
+pub fn render_thread(view_receiver: Receiver<TerminalEvent>) -> thread::JoinHandle<()> {
     enable_raw_mode().expect("Can run in raw mode");
     let stdout = std::io::stdout();
     let backend = CrosstermBackend::new(stdout);
@@ -55,5 +55,5 @@ pub fn render_thread(view_receiver: Receiver<TerminalEvent>) {
             }
             _ => {}
         }
-    });
+    })
 }

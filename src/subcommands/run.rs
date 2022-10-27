@@ -18,6 +18,8 @@ pub fn run() {
         mpsc::channel();
 
     poll_input_thread(input_worker_tx);
-    render_thread(view_receiver);
+    let render_thread_handle = render_thread(view_receiver);
     PomodoroTimer::new(input_worker_rx, view_sender, Duration::from_secs(20)).run();
+
+    render_thread_handle.join().unwrap();
 }
