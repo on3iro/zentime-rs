@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use subcommands::run::run;
 
+mod config;
 mod events;
 mod input;
 mod state;
@@ -17,8 +18,8 @@ struct Cli {
     detached: bool,
 
     /// Sets a custom config file
-    #[arg(short, long, value_name = "~/.config/zentime/zentime.toml")]
-    config: Option<PathBuf>,
+    #[arg(short, long, default_value = "~/.config/zentime/zentime.toml")]
+    config: String,
 
     #[command(subcommand)]
     command: Option<Commands>,
@@ -45,6 +46,6 @@ fn main() {
         // TODO
         Some(_Commands) => {}
 
-        None => run(),
+        None => run(&cli.config),
     }
 }
