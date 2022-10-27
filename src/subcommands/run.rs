@@ -19,7 +19,7 @@ pub fn run() {
 
     poll_input_thread(input_worker_tx);
     let render_thread_handle = render_thread(view_receiver);
-    PomodoroTimer::new(input_worker_rx, view_sender, Duration::from_secs(20)).run();
+    PomodoroTimer::new(input_worker_rx, view_sender, Duration::from_secs(20)).init();
 
     render_thread_handle.join().unwrap();
 }

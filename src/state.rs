@@ -15,15 +15,15 @@ use std::time::Instant;
 
 pub trait TimerState {}
 
-pub struct IdleTimer {
+pub struct Paused {
     remaining_time: Duration,
 }
-pub struct RunningTimer {
+struct Running {
     target_time: Instant,
 }
 
-impl TimerState for IdleTimer {}
-impl TimerState for RunningTimer {}
+impl TimerState for Paused {}
+impl TimerState for Running {}
 
 struct ActualTimerState {
     input_receiver: Receiver<InputEvent<Event>>,
@@ -35,7 +35,8 @@ pub struct PomodoroTimer<S: TimerState> {
     extra: S,
 }
 
-impl PomodoroTimer<IdleTimer> {
+impl PomodoroTimer<Paused> {
+    /// Creates a new paused timer
     pub fn new(
         input_receiver: Receiver<InputEvent<Event>>,
         view_sender: Sender<TerminalEvent>,
@@ -46,13 +47,14 @@ impl PomodoroTimer<IdleTimer> {
                 input_receiver,
                 view_sender,
             }),
-            extra: IdleTimer {
+            extra: Paused {
                 remaining_time: duration,
             },
         }
     }
 
-    pub fn run(self) {
+    /// Puts the paused timer into a waiting state waiting for input.
+    pub fn init(self) {
         loop {
             let time = self.extra.remaining_time.as_secs();
             self.state
@@ -83,10 +85,11 @@ impl PomodoroTimer<IdleTimer> {
         }
     }
 
+    /// Transitions the paused timer into a running timer
     fn unpause(self) {
         PomodoroTimer {
             state: self.state,
-            extra: RunningTimer {
+            extra: Running {
                 target_time: Instant::now() + self.extra.remaining_time,
             },
         }
@@ -94,7 +97,8 @@ impl PomodoroTimer<IdleTimer> {
     }
 }
 
-impl PomodoroTimer<RunningTimer> {
+impl PomodoroTimer<Running> {
+    /// Runs the timer and awaits input
     fn start(self) {
         while self.extra.target_time > Instant::now() {
             let time = (self.extra.target_time - Instant::now()).as_secs();
@@ -127,13 +131,14 @@ impl PomodoroTimer<RunningTimer> {
         self.state.view_sender.send(TerminalEvent::Quit).unwrap();
     }
 
+    /// Transitions the running timer into a paused timer state
     fn pause(self) {
         PomodoroTimer {
             state: self.state,
-            extra: IdleTimer {
+            extra: Paused {
                 remaining_time: self.extra.target_time - Instant::now(),
             },
         }
-        .run();
+        .init();
     }
 }
