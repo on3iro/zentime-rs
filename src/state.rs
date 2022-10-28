@@ -4,6 +4,9 @@ use crate::events::InputEvent;
 use crate::events::TerminalEvent;
 use crate::events::ViewState;
 use crate::input::handle_input;
+use crate::notification;
+use crate::sound;
+use crate::sound::SoundFile;
 use crate::util::seconds_to_time;
 use crossterm::event::Event;
 use std::sync::mpsc::Receiver;
@@ -14,6 +17,14 @@ use std::time::Instant;
 
 // NOTE: I tried to use the typestate approach, like it's described here:
 // https://cliffle.com/blog/rust-typestate/
+
+// TODO
+// * refactor
+// * add proper error handling
+// * use nicer colors in rendering
+// * add 'skip'
+// * add CI + brew tap
+// * add client/server arch
 
 pub trait TimerState {}
 
@@ -45,11 +56,14 @@ impl<S: TimerState> PomodoroTimer<S> {
         let is_major_break = self.shared_state.round % self.config.timers.intervals == 0;
 
         let new_timer = if self.shared_state.is_break {
+            notification::send("Break is over");
             self.new_timer()
         } else {
+            notification::send("Good job! Take a break");
             self.new_break_timer(is_major_break)
         };
 
+        sound::play(SoundFile::Bell);
         new_timer.init();
     }
 

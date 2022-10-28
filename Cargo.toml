@@ -11,6 +11,8 @@ path = "src/main.rs"
 
 [dependencies]
 figment = { version = "0.10", features = ["toml"] }
+rodio = "0.12"
+notify-rust = "4"
 serde = { version = "1", features = ["derive"] }
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.25.0"

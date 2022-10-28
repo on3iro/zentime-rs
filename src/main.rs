@@ -5,6 +5,8 @@ use subcommands::run::run;
 mod config;
 mod events;
 mod input;
+mod notification;
+mod sound;
 mod state;
 mod subcommands;
 mod util;

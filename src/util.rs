@@ -15,9 +15,10 @@ pub fn seconds_to_time(duration: u64) -> String {
 pub fn quit(terminal: &mut Terminal<CrosstermBackend<Stdout>>, msg: Option<&str>) -> AppAction {
     disable_raw_mode().unwrap();
     terminal.show_cursor().unwrap();
+    terminal.clear().unwrap();
     execute!(std::io::stdout(), DisableMouseCapture).unwrap();
 
-    println!("\n\n{}", msg.unwrap_or(""));
+    println!("\n\n\n\n\n{}", msg.unwrap_or(""));
 
     process::exit(0)
 }
