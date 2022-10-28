@@ -27,9 +27,7 @@ impl TimerState for Paused {}
 impl TimerState for Running {}
 
 struct ActualTimerState {
-    input_receiver: Receiver<InputEvent<Event>>,
-    view_sender: Sender<TerminalEvent>,
-    round: u16,
+    round: u64,
     is_break: bool,
 }
 
@@ -37,10 +35,50 @@ pub struct PomodoroTimer<S: TimerState> {
     config: Config,
     state: Box<ActualTimerState>,
     extra: S,
+    input_receiver: Receiver<InputEvent<Event>>,
+    view_sender: Sender<TerminalEvent>,
 }
 
 impl<S: TimerState> PomodoroTimer<S> {
-    fn next(&self) {}
+    fn next(self) {
+        let is_major_break = self.state.round % self.config.timers.intervals == 0;
+
+        let new_timer = if self.state.is_break {
+            let remaining_time = Duration::from_secs(self.config.timers.timer);
+
+            PomodoroTimer {
+                input_receiver: self.input_receiver,
+                view_sender: self.view_sender,
+                config: self.config,
+                state: Box::new(ActualTimerState {
+                    round: self.state.round + 1,
+                    is_break: false,
+                }),
+                extra: Paused { remaining_time },
+            }
+        } else {
+            let break_length = if is_major_break {
+                self.config.timers.major_break
+            } else {
+                self.config.timers.minor_break
+            };
+
+            PomodoroTimer {
+                input_receiver: self.input_receiver,
+                view_sender: self.view_sender,
+                config: self.config,
+                state: Box::new(ActualTimerState {
+                    round: self.state.round,
+                    is_break: true,
+                }),
+                extra: Paused {
+                    remaining_time: Duration::from_secs(break_length),
+                },
+            }
+        };
+
+        new_timer.init();
+    }
 }
 
 impl PomodoroTimer<Paused> {
@@ -54,9 +92,9 @@ impl PomodoroTimer<Paused> {
 
         Self {
             config,
+            input_receiver,
+            view_sender,
             state: Box::new(ActualTimerState {
-                input_receiver,
-                view_sender,
                 round: 1,
                 is_break: false,
             }),
@@ -68,16 +106,11 @@ impl PomodoroTimer<Paused> {
     pub fn init(self) {
         loop {
             let time = self.extra.remaining_time.as_secs();
-            self.state
-                .view_sender
+            self.view_sender
                 .send(TerminalEvent::View(seconds_to_time(time)))
                 .unwrap();
 
-            let action = match self
-                .state
-                .input_receiver
-                .recv_timeout(Duration::from_secs(1))
-            {
+            let action = match self.input_receiver.recv_timeout(Duration::from_secs(1)) {
                 Ok(event) => handle_input(event),
                 Err(RecvTimeoutError::Disconnected) => AppAction::Quit,
                 _ => AppAction::None,
@@ -85,7 +118,7 @@ impl PomodoroTimer<Paused> {
 
             match action {
                 AppAction::Quit => {
-                    self.state.view_sender.send(TerminalEvent::Quit).unwrap();
+                    self.view_sender.send(TerminalEvent::Quit).unwrap();
                 }
                 AppAction::PlayPause => {
                     self.unpause();
@@ -99,6 +132,8 @@ impl PomodoroTimer<Paused> {
     /// Transitions the paused timer into a running timer
     fn unpause(self) {
         PomodoroTimer {
+            input_receiver: self.input_receiver,
+            view_sender: self.view_sender,
             config: self.config,
             state: self.state,
             extra: Running {
@@ -114,16 +149,11 @@ impl PomodoroTimer<Running> {
     fn start(self) {
         while self.extra.target_time > Instant::now() {
             let time = (self.extra.target_time - Instant::now()).as_secs();
-            self.state
-                .view_sender
+            self.view_sender
                 .send(TerminalEvent::View(seconds_to_time(time)))
                 .unwrap();
 
-            let action = match self
-                .state
-                .input_receiver
-                .recv_timeout(Duration::from_secs(1))
-            {
+            let action = match self.input_receiver.recv_timeout(Duration::from_secs(1)) {
                 Ok(event) => handle_input(event),
                 Err(RecvTimeoutError::Disconnected) => AppAction::Quit,
                 _ => AppAction::None,
@@ -131,7 +161,7 @@ impl PomodoroTimer<Running> {
 
             match action {
                 AppAction::Quit => {
-                    self.state.view_sender.send(TerminalEvent::Quit).unwrap();
+                    self.view_sender.send(TerminalEvent::Quit).unwrap();
                 }
                 AppAction::PlayPause => {
                     return self.pause();
@@ -140,12 +170,14 @@ impl PomodoroTimer<Running> {
             }
         }
 
-        self.state.view_sender.send(TerminalEvent::Quit).unwrap();
+        self.next();
     }
 
     /// Transitions the running timer into a paused timer state
     fn pause(self) {
         PomodoroTimer {
+            input_receiver: self.input_receiver,
+            view_sender: self.view_sender,
             config: self.config,
             state: self.state,
             extra: Paused {
