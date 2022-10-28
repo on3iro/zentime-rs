@@ -47,8 +47,8 @@ pub fn render_thread(view_receiver: Receiver<TerminalEvent>) -> thread::JoinHand
 
     thread::spawn(move || loop {
         match view_receiver.recv() {
-            Ok(TerminalEvent::View(string)) => {
-                timer_view(&mut terminal, &string);
+            Ok(TerminalEvent::View(state)) => {
+                timer_view(&mut terminal, &state.time);
             }
             Ok(TerminalEvent::Quit) => {
                 quit(&mut terminal, Some("Cya!"));

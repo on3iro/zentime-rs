@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::events::AppAction;
 use crate::events::InputEvent;
 use crate::events::TerminalEvent;
+use crate::events::ViewState;
 use crate::input::handle_input;
 use crate::util::seconds_to_time;
 use crossterm::event::Event;
@@ -33,28 +34,28 @@ struct ActualTimerState {
 
 pub struct PomodoroTimer<S: TimerState> {
     config: Config,
-    state: Box<ActualTimerState>,
-    extra: S,
+    shared_state: Box<ActualTimerState>,
+    internal_state: S,
     input_receiver: Receiver<InputEvent<Event>>,
     view_sender: Sender<TerminalEvent>,
 }
 
 impl<S: TimerState> PomodoroTimer<S> {
     fn next(self) {
-        let is_major_break = self.state.round % self.config.timers.intervals == 0;
+        let is_major_break = self.shared_state.round % self.config.timers.intervals == 0;
 
-        let new_timer = if self.state.is_break {
+        let new_timer = if self.shared_state.is_break {
             let remaining_time = Duration::from_secs(self.config.timers.timer);
 
             PomodoroTimer {
                 input_receiver: self.input_receiver,
                 view_sender: self.view_sender,
                 config: self.config,
-                state: Box::new(ActualTimerState {
-                    round: self.state.round + 1,
+                shared_state: Box::new(ActualTimerState {
+                    round: self.shared_state.round + 1,
                     is_break: false,
                 }),
-                extra: Paused { remaining_time },
+                internal_state: Paused { remaining_time },
             }
         } else {
             let break_length = if is_major_break {
@@ -67,11 +68,11 @@ impl<S: TimerState> PomodoroTimer<S> {
                 input_receiver: self.input_receiver,
                 view_sender: self.view_sender,
                 config: self.config,
-                state: Box::new(ActualTimerState {
-                    round: self.state.round,
+                shared_state: Box::new(ActualTimerState {
+                    round: self.shared_state.round,
                     is_break: true,
                 }),
-                extra: Paused {
+                internal_state: Paused {
                     remaining_time: Duration::from_secs(break_length),
                 },
             }
@@ -94,20 +95,24 @@ impl PomodoroTimer<Paused> {
             config,
             input_receiver,
             view_sender,
-            state: Box::new(ActualTimerState {
+            shared_state: Box::new(ActualTimerState {
                 round: 1,
                 is_break: false,
             }),
-            extra: Paused { remaining_time },
+            internal_state: Paused { remaining_time },
         }
     }
 
     /// Puts the paused timer into a waiting state waiting for input.
     pub fn init(self) {
         loop {
-            let time = self.extra.remaining_time.as_secs();
+            let time = self.internal_state.remaining_time.as_secs();
             self.view_sender
-                .send(TerminalEvent::View(seconds_to_time(time)))
+                .send(TerminalEvent::View(ViewState {
+                    is_break: self.shared_state.is_break,
+                    round: self.shared_state.round,
+                    time: seconds_to_time(time),
+                }))
                 .unwrap();
 
             let action = match self.input_receiver.recv_timeout(Duration::from_secs(1)) {
@@ -135,9 +140,9 @@ impl PomodoroTimer<Paused> {
             input_receiver: self.input_receiver,
             view_sender: self.view_sender,
             config: self.config,
-            state: self.state,
-            extra: Running {
-                target_time: Instant::now() + self.extra.remaining_time,
+            shared_state: self.shared_state,
+            internal_state: Running {
+                target_time: Instant::now() + self.internal_state.remaining_time,
             },
         }
         .start();
@@ -147,10 +152,14 @@ impl PomodoroTimer<Paused> {
 impl PomodoroTimer<Running> {
     /// Runs the timer and awaits input
     fn start(self) {
-        while self.extra.target_time > Instant::now() {
-            let time = (self.extra.target_time - Instant::now()).as_secs();
+        while self.internal_state.target_time > Instant::now() {
+            let time = (self.internal_state.target_time - Instant::now()).as_secs();
             self.view_sender
-                .send(TerminalEvent::View(seconds_to_time(time)))
+                .send(TerminalEvent::View(ViewState {
+                    is_break: self.shared_state.is_break,
+                    round: self.shared_state.round,
+                    time: seconds_to_time(time),
+                }))
                 .unwrap();
 
             let action = match self.input_receiver.recv_timeout(Duration::from_secs(1)) {
@@ -179,9 +188,9 @@ impl PomodoroTimer<Running> {
             input_receiver: self.input_receiver,
             view_sender: self.view_sender,
             config: self.config,
-            state: self.state,
-            extra: Paused {
-                remaining_time: self.extra.target_time - Instant::now(),
+            shared_state: self.shared_state,
+            internal_state: Paused {
+                remaining_time: self.internal_state.target_time - Instant::now(),
             },
         }
         .init();
