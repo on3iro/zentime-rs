@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::events::AppAction;
 use crate::events::InputEvent;
 use crate::events::TerminalEvent;
@@ -28,11 +29,18 @@ impl TimerState for Running {}
 struct ActualTimerState {
     input_receiver: Receiver<InputEvent<Event>>,
     view_sender: Sender<TerminalEvent>,
+    round: u16,
+    is_break: bool,
 }
 
 pub struct PomodoroTimer<S: TimerState> {
+    config: Config,
     state: Box<ActualTimerState>,
     extra: S,
+}
+
+impl<S: TimerState> PomodoroTimer<S> {
+    fn next(&self) {}
 }
 
 impl PomodoroTimer<Paused> {
@@ -40,16 +48,19 @@ impl PomodoroTimer<Paused> {
     pub fn new(
         input_receiver: Receiver<InputEvent<Event>>,
         view_sender: Sender<TerminalEvent>,
-        duration: Duration,
+        config: Config,
     ) -> Self {
+        let remaining_time = Duration::from_secs(config.timers.timer);
+
         Self {
+            config,
             state: Box::new(ActualTimerState {
                 input_receiver,
                 view_sender,
+                round: 1,
+                is_break: false,
             }),
-            extra: Paused {
-                remaining_time: duration,
-            },
+            extra: Paused { remaining_time },
         }
     }
 
@@ -88,6 +99,7 @@ impl PomodoroTimer<Paused> {
     /// Transitions the paused timer into a running timer
     fn unpause(self) {
         PomodoroTimer {
+            config: self.config,
             state: self.state,
             extra: Running {
                 target_time: Instant::now() + self.extra.remaining_time,
@@ -134,6 +146,7 @@ impl PomodoroTimer<Running> {
     /// Transitions the running timer into a paused timer state
     fn pause(self) {
         PomodoroTimer {
+            config: self.config,
             state: self.state,
             extra: Paused {
                 remaining_time: self.extra.target_time - Instant::now(),

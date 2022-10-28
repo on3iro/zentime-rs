@@ -9,26 +9,20 @@ use crossterm::event::Event;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
-use std::time::Duration;
 
 pub fn run(config_path: &str) {
     let config: Config = create_config(config_path).extract().unwrap();
 
-    let (input_worker_tx, input_worker_rx): (
+    let (input_worker_sender, input_worker_receiver): (
         Sender<InputEvent<Event>>,
         Receiver<InputEvent<Event>>,
     ) = mpsc::channel();
     let (view_sender, view_receiver): (Sender<TerminalEvent>, Receiver<TerminalEvent>) =
         mpsc::channel();
 
-    poll_input_thread(input_worker_tx);
+    poll_input_thread(input_worker_sender);
     let render_thread_handle = render_thread(view_receiver);
-    PomodoroTimer::new(
-        input_worker_rx,
-        view_sender,
-        Duration::from_secs(config.timers.timer),
-    )
-    .init();
+    PomodoroTimer::new(input_worker_receiver, view_sender, config).init();
 
     render_thread_handle.join().unwrap();
 }
