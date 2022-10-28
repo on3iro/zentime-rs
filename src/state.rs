@@ -45,40 +45,48 @@ impl<S: TimerState> PomodoroTimer<S> {
         let is_major_break = self.shared_state.round % self.config.timers.intervals == 0;
 
         let new_timer = if self.shared_state.is_break {
-            let remaining_time = Duration::from_secs(self.config.timers.timer);
-
-            PomodoroTimer {
-                input_receiver: self.input_receiver,
-                view_sender: self.view_sender,
-                config: self.config,
-                shared_state: Box::new(ActualTimerState {
-                    round: self.shared_state.round + 1,
-                    is_break: false,
-                }),
-                internal_state: Paused { remaining_time },
-            }
+            self.new_timer()
         } else {
-            let break_length = if is_major_break {
-                self.config.timers.major_break
-            } else {
-                self.config.timers.minor_break
-            };
-
-            PomodoroTimer {
-                input_receiver: self.input_receiver,
-                view_sender: self.view_sender,
-                config: self.config,
-                shared_state: Box::new(ActualTimerState {
-                    round: self.shared_state.round,
-                    is_break: true,
-                }),
-                internal_state: Paused {
-                    remaining_time: Duration::from_secs(break_length),
-                },
-            }
+            self.new_break_timer(is_major_break)
         };
 
         new_timer.init();
+    }
+
+    fn new_break_timer(self, is_major_break: bool) -> PomodoroTimer<Paused> {
+        let break_length = if is_major_break {
+            self.config.timers.major_break
+        } else {
+            self.config.timers.minor_break
+        };
+
+        PomodoroTimer {
+            input_receiver: self.input_receiver,
+            view_sender: self.view_sender,
+            config: self.config,
+            shared_state: Box::new(ActualTimerState {
+                round: self.shared_state.round,
+                is_break: true,
+            }),
+            internal_state: Paused {
+                remaining_time: Duration::from_secs(break_length),
+            },
+        }
+    }
+
+    fn new_timer(self) -> PomodoroTimer<Paused> {
+        let remaining_time = Duration::from_secs(self.config.timers.timer);
+
+        PomodoroTimer {
+            input_receiver: self.input_receiver,
+            view_sender: self.view_sender,
+            config: self.config,
+            shared_state: Box::new(ActualTimerState {
+                round: self.shared_state.round + 1,
+                is_break: false,
+            }),
+            internal_state: Paused { remaining_time },
+        }
     }
 }
 
