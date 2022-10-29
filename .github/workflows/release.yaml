@@ -22,7 +22,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files: crow.tar.gz
+          files: zentime.tar.gz
       - name: Extract version
         id: extract-version
         run: |
