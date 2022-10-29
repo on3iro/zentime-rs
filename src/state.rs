@@ -52,18 +52,23 @@ pub struct PomodoroTimer<S: TimerState> {
 }
 
 impl<S: TimerState> PomodoroTimer<S> {
-    fn next(self) {
+    fn next(self, notify: bool) {
         let is_major_break = self.shared_state.round % self.config.timers.intervals == 0;
 
-        let new_timer = if self.shared_state.is_break {
-            notification::send("Break is over");
-            self.new_timer()
+        let (new_timer, notification_string) = if self.shared_state.is_break {
+            (self.new_timer(), "Break is over")
         } else {
-            notification::send("Good job! Take a break");
-            self.new_break_timer(is_major_break)
+            (
+                self.new_break_timer(is_major_break),
+                "Good job! Take a break",
+            )
         };
 
-        sound::play(SoundFile::Bell);
+        if notify {
+            sound::play(SoundFile::Bell);
+            notification::send(notification_string);
+        }
+
         new_timer.init();
     }
 
@@ -151,6 +156,10 @@ impl PomodoroTimer<Paused> {
                     self.unpause();
                     break;
                 }
+                AppAction::Skip => {
+                    return self.next(false);
+                }
+
                 AppAction::None => {}
             }
         }
@@ -197,11 +206,14 @@ impl PomodoroTimer<Running> {
                 AppAction::PlayPause => {
                     return self.pause();
                 }
+                AppAction::Skip => {
+                    return self.next(false);
+                }
                 AppAction::None => {}
             }
         }
 
-        self.next();
+        self.next(true);
     }
 
     /// Transitions the running timer into a paused timer state

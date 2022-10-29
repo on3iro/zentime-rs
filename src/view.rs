@@ -51,7 +51,7 @@ fn timer_view(terminal: &mut Terminal<CrosstermBackend<Stdout>>, timer_state: Vi
             let layout = layout(rect);
             let inner_layout = inner_layout(layout[0]);
 
-            let keybindings = vec!["[Q]uit", "Space: Play/Pause"];
+            let keybindings = vec!["[Q]uit", "[S]kip", "Space: Play/Pause"];
             let keybinding_spans = keybindings
                 .iter()
                 .map(|key| {

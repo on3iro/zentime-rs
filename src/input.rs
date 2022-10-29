@@ -41,6 +41,13 @@ pub fn handle_input(event: InputEvent<Event>) -> AppAction {
                 return AppAction::PlayPause;
             }
 
+            KeyEvent {
+                code: KeyCode::Char('s'),
+                ..
+            } => {
+                return AppAction::Skip;
+            }
+
             _ => {}
         }
     }

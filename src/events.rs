@@ -17,4 +17,5 @@ pub enum AppAction {
     Quit,
     None,
     PlayPause,
+    Skip,
 }
