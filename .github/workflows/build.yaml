@@ -1,0 +1,25 @@
+on: [push]
+name: build
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: cache
+        uses: Swatinem/rust-cache@v1
+      - name: lint
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          use-cross: true
+      - name: test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test

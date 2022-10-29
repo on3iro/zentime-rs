@@ -1,0 +1,41 @@
+name: Release
+on:
+  release:
+    types: [published]
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
+          use-cross: true
+      - name: compress
+        run: tar -C target/release -czf zentime.tar.gz zentime
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: crow.tar.gz
+      - name: Extract version
+        id: extract-version
+        run: |
+          printf "::set-output name=%s::%s\n" tag-name "${GITHUB_REF#refs/tags/}"
+      - name: Update Homebrew formula
+        uses: mislav/bump-homebrew-formula-action@v1
+        with:
+          # A PR will be sent to github.com/Homebrew/homebrew-core to update this formula:
+          formula-name: zentime
+          formula-path: Formula/zentime.rb
+          homebrew-tap: on3iro/homebrew-zentime
+          download-url: https://github.com/on3iro/zentime-rs/releases/download/${{ steps.extract-version.outputs.tag-name }}/zentime.tar.gz
+          base-branch: main
+        env:
+          COMMITTER_TOKEN: ${{ secrets.ZENTIME_TAP_TOKEN }}
+
