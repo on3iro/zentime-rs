@@ -1,0 +1,12 @@
+[timers]
+# Timer length in seconds
+timer = 1500 # => 25 minutes
+
+# Minor break length in seconds
+minor_break = 300 # => 5 minutes
+
+# Major break length in seconds
+major_break = 900 # => 15 minutes
+
+# Number of intervals before major break
+intervals = 4

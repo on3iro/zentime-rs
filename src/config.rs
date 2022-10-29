@@ -29,8 +29,8 @@ impl Default for Config {
     fn default() -> Config {
         Config {
             timers: TimerConfig {
-                timer: 20,
-                minor_break: 10,
+                timer: 1500,
+                minor_break: 300,
                 major_break: 900,
                 intervals: 4,
             },
