@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::events::InputEvent;
 use crate::events::TerminalEvent;
 use crate::input::poll_input_thread;
-use crate::state::PomodoroTimer;
+use crate::timer::PomodoroTimer;
 use crate::view::render_thread;
 use crossterm::event::Event;
 use std::sync::mpsc;

@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::config::NotificationConfig;
 use crate::events::AppAction;
 use crate::events::InputEvent;
 use crate::events::TerminalEvent;
@@ -44,8 +45,24 @@ pub struct PomodoroTimer<S: TimerState> {
 }
 
 impl<S: TimerState> PomodoroTimer<S> {
+    fn dispatch_notification(
+        config: NotificationConfig,
+        notification_string: &str,
+    ) -> anyhow::Result<()> {
+        if config.enable_bell {
+            sound::play(SoundFile::Bell, config.volume);
+        }
+
+        if config.show_notification {
+            notification::send(notification_string)?;
+        }
+        Ok(())
+    }
+
     fn next(self, notify: bool) -> anyhow::Result<()> {
         let is_major_break = self.shared_state.round % self.config.timers.intervals == 0;
+
+        let config = self.config.notifications;
 
         let (new_timer, notification_string) = if self.shared_state.is_break {
             (self.new_timer(), "Break is over")
@@ -57,8 +74,7 @@ impl<S: TimerState> PomodoroTimer<S> {
         };
 
         if notify {
-            sound::play(SoundFile::Bell);
-            notification::send(notification_string)?;
+            PomodoroTimer::<S>::dispatch_notification(config, notification_string)?;
         }
 
         new_timer.init()
