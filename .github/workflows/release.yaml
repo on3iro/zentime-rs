@@ -6,8 +6,43 @@ jobs:
   release:
     runs-on: macos-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v2
+        with:
+          ref: 'refs/heads/main'
+          token: ${{ secrets.ACTION_GITHUB_BOT }}
+
+      ##################
+      # Version Upping #
+      ##################
+
+      - name: Extract version
+        id: extract-version
+        run: |
+          echo "tag-name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      # Note: it's important that this is being run before the version is upped
+      # because a commit will be created during the process
+      - name: Set git config
+        run: |
+          # setup the username and email.
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+
+      - name: Replace crate version in Cargo.toml
+        run: |
+          sed -E -i "0,/version/s/(version\ =\ )\"[0-9]\.[0-9]\.[0-9]\"/\"${ steps.extract-version.outputs.tag-name }\"/" Cargo.toml
+
+      - name: Commit
+        run: git commit -m "VERSION: ${ steps.extract-version.outputs.tag-name }"
+
+      - name: Push version commit
+        run: git push origin main
+
+      #########
+      # Build #
+      #########
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -19,14 +54,15 @@ jobs:
           use-cross: true
       - name: compress
         run: tar -C target/release -czf zentime.tar.gz zentime
+
+      ###########
+      # Publish #
+      ###########
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           files: zentime.tar.gz
-      - name: Extract version
-        id: extract-version
-        run: |
-          printf "::set-output name=%s::%s\n" tag-name "${GITHUB_REF#refs/tags/}"
       - name: Update Homebrew formula
         uses: mislav/bump-homebrew-formula-action@v1
         with:
