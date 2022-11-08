@@ -31,7 +31,7 @@ jobs:
 
       - name: Replace crate version in Cargo.toml
         run: |
-          sed -E -i "0,/version/s/(version\ =\ )\"[0-9]\.[0-9]\.[0-9]\"/\"${ steps.extract-version.outputs.tag-name }\"/" Cargo.toml
+          sed -E -i "0,/version/s/(version\ =\ )\"[0-9]\.[0-9]\.[0-9]\"/\"${{ steps.extract-version.outputs.tag-name }}\"/" Cargo.toml
 
       - name: Commit
         run: git commit -m "NEW-VERSION ${ steps.extract-version.outputs.tag-name }"
