@@ -18,14 +18,6 @@ use std::time::Instant;
 // NOTE: I tried to use the typestate approach, like it's described here:
 // https://cliffle.com/blog/rust-typestate/
 
-// TODO
-// * refactor
-// * add proper error handling
-// * use nicer colors in rendering
-// * add 'skip'
-// * add CI + brew tap
-// * add client/server arch
-
 pub trait TimerState {}
 
 pub struct Paused {
@@ -52,7 +44,7 @@ pub struct PomodoroTimer<S: TimerState> {
 }
 
 impl<S: TimerState> PomodoroTimer<S> {
-    fn next(self, notify: bool) {
+    fn next(self, notify: bool) -> anyhow::Result<()> {
         let is_major_break = self.shared_state.round % self.config.timers.intervals == 0;
 
         let (new_timer, notification_string) = if self.shared_state.is_break {
@@ -66,10 +58,10 @@ impl<S: TimerState> PomodoroTimer<S> {
 
         if notify {
             sound::play(SoundFile::Bell);
-            notification::send(notification_string);
+            notification::send(notification_string)?;
         }
 
-        new_timer.init();
+        new_timer.init()
     }
 
     fn new_break_timer(self, is_major_break: bool) -> PomodoroTimer<Paused> {
@@ -131,16 +123,14 @@ impl PomodoroTimer<Paused> {
     }
 
     /// Puts the paused timer into a waiting state waiting for input.
-    pub fn init(self) {
+    pub fn init(self) -> anyhow::Result<()> {
         loop {
             let time = self.internal_state.remaining_time.as_secs();
-            self.view_sender
-                .send(TerminalEvent::View(ViewState {
-                    is_break: self.shared_state.is_break,
-                    round: self.shared_state.round,
-                    time: seconds_to_time(time),
-                }))
-                .unwrap();
+            self.view_sender.send(TerminalEvent::View(ViewState {
+                is_break: self.shared_state.is_break,
+                round: self.shared_state.round,
+                time: seconds_to_time(time),
+            }))?;
 
             let action = match self.input_receiver.recv_timeout(Duration::from_secs(1)) {
                 Ok(event) => handle_input(event),
@@ -150,10 +140,10 @@ impl PomodoroTimer<Paused> {
 
             match action {
                 AppAction::Quit => {
-                    self.view_sender.send(TerminalEvent::Quit).unwrap();
+                    self.view_sender.send(TerminalEvent::Quit)?;
                 }
                 AppAction::PlayPause => {
-                    self.unpause();
+                    self.unpause()?;
                     break;
                 }
                 AppAction::Skip => {
@@ -163,10 +153,12 @@ impl PomodoroTimer<Paused> {
                 AppAction::None => {}
             }
         }
+
+        Ok(())
     }
 
     /// Transitions the paused timer into a running timer
-    fn unpause(self) {
+    fn unpause(self) -> anyhow::Result<()> {
         PomodoroTimer {
             input_receiver: self.input_receiver,
             view_sender: self.view_sender,
@@ -176,22 +168,20 @@ impl PomodoroTimer<Paused> {
                 target_time: Instant::now() + self.internal_state.remaining_time,
             },
         }
-        .start();
+        .start()
     }
 }
 
 impl PomodoroTimer<Running> {
     /// Runs the timer and awaits input
-    fn start(self) {
+    fn start(self) -> anyhow::Result<()> {
         while self.internal_state.target_time > Instant::now() {
             let time = (self.internal_state.target_time - Instant::now()).as_secs();
-            self.view_sender
-                .send(TerminalEvent::View(ViewState {
-                    is_break: self.shared_state.is_break,
-                    round: self.shared_state.round,
-                    time: seconds_to_time(time),
-                }))
-                .unwrap();
+            self.view_sender.send(TerminalEvent::View(ViewState {
+                is_break: self.shared_state.is_break,
+                round: self.shared_state.round,
+                time: seconds_to_time(time),
+            }))?;
 
             let action = match self.input_receiver.recv_timeout(Duration::from_secs(1)) {
                 Ok(event) => handle_input(event),
@@ -201,7 +191,7 @@ impl PomodoroTimer<Running> {
 
             match action {
                 AppAction::Quit => {
-                    self.view_sender.send(TerminalEvent::Quit).unwrap();
+                    self.view_sender.send(TerminalEvent::Quit)?;
                 }
                 AppAction::PlayPause => {
                     return self.pause();
@@ -213,11 +203,11 @@ impl PomodoroTimer<Running> {
             }
         }
 
-        self.next(true);
+        self.next(true)
     }
 
     /// Transitions the running timer into a paused timer state
-    fn pause(self) {
+    fn pause(self) -> anyhow::Result<()> {
         PomodoroTimer {
             input_receiver: self.input_receiver,
             view_sender: self.view_sender,
@@ -227,6 +217,6 @@ impl PomodoroTimer<Running> {
                 remaining_time: self.internal_state.target_time - Instant::now(),
             },
         }
-        .init();
+        .init()
     }
 }

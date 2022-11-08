@@ -11,7 +11,9 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 
 pub fn run(config_path: &str) {
-    let config: Config = create_config(config_path).extract().unwrap();
+    let config: Config = create_config(config_path)
+        .extract()
+        .expect("Could not create config");
 
     let (input_worker_sender, input_worker_receiver): (
         Sender<InputEvent<Event>>,
@@ -22,7 +24,9 @@ pub fn run(config_path: &str) {
 
     poll_input_thread(input_worker_sender);
     let render_thread_handle = render_thread(view_receiver);
-    PomodoroTimer::new(input_worker_receiver, view_sender, config).init();
+    PomodoroTimer::new(input_worker_receiver, view_sender, config)
+        .init()
+        .expect("Could not initialize timer");
 
-    render_thread_handle.join().unwrap();
+    render_thread_handle.join().expect("Could not join threads");
 }
