@@ -7,8 +7,8 @@ mod events;
 mod input;
 mod notification;
 mod sound;
-mod state;
 mod subcommands;
+mod timer;
 mod util;
 mod view;
 

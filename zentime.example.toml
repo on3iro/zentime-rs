@@ -10,3 +10,13 @@ major_break = 900 # => 15 minutes
 
 # Number of intervals before major break
 intervals = 4
+
+[notifications]
+# Enable/Disable bell
+enable_bell = true
+
+# Notification bell volume
+volume = 0.5
+
+# Show OS-notification
+show_notification = true
