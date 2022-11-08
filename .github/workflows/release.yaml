@@ -41,7 +41,9 @@ jobs:
           sed -E -i '' "1,/version/ s/(version = )\"[0-9].?[0-9]?.?[0-9]?\"/\1\"${{ steps.extract-version.outputs.tag-name }}\"/" ./Cargo.toml
 
       - name: Commit
-        run: git commit -m "NEW-VERSION ${{ steps.extract-version.outputs.tag-name }}"
+        run: |
+          git add --all
+          git commit -m "NEW-VERSION ${{ steps.extract-version.outputs.tag-name }}"
 
       - name: Push version commit
         run: git push origin main
