@@ -1,4 +1,5 @@
 use crate::events::ViewState;
+use anyhow::Context;
 use crossterm::terminal::enable_raw_mode;
 use std::io::Stdout;
 use std::sync::mpsc::Receiver;
@@ -86,7 +87,10 @@ fn timer(time: &str) -> Paragraph {
         .alignment(Alignment::Center)
 }
 
-fn timer_view(terminal: &mut Terminal<CrosstermBackend<Stdout>>, timer_state: ViewState) {
+fn timer_view(
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    timer_state: ViewState,
+) -> anyhow::Result<()> {
     terminal
         .draw(|frame| {
             let rect = frame.size();
@@ -107,7 +111,8 @@ fn timer_view(terminal: &mut Terminal<CrosstermBackend<Stdout>>, timer_state: Vi
             let timer = timer(&timer_state.time);
             frame.render_widget(timer, inner_layout[1])
         })
-        .unwrap();
+        .context("Could not render to terminal")?;
+    Ok(())
 }
 
 pub fn render_thread(view_receiver: Receiver<TerminalEvent>) -> thread::JoinHandle<()> {
@@ -120,10 +125,12 @@ pub fn render_thread(view_receiver: Receiver<TerminalEvent>) -> thread::JoinHand
     thread::spawn(move || loop {
         match view_receiver.recv() {
             Ok(TerminalEvent::View(state)) => {
-                timer_view(&mut terminal, state);
+                if let Err(err) = timer_view(&mut terminal, state) {
+                    quit(&mut terminal, Some(&format!("ERROR: {}", err)), true);
+                };
             }
             Ok(TerminalEvent::Quit) => {
-                quit(&mut terminal, Some("Cya!"));
+                quit(&mut terminal, Some("Cya!"), false);
             }
             _ => {}
         }

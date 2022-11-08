@@ -12,13 +12,17 @@ pub fn seconds_to_time(duration: u64) -> String {
 }
 
 /// Quit by gracefully terminating
-pub fn quit(terminal: &mut Terminal<CrosstermBackend<Stdout>>, msg: Option<&str>) -> AppAction {
-    disable_raw_mode().unwrap();
-    terminal.show_cursor().unwrap();
-    terminal.clear().unwrap();
-    execute!(std::io::stdout(), DisableMouseCapture).unwrap();
+pub fn quit(
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    msg: Option<&str>,
+    is_error: bool,
+) -> AppAction {
+    disable_raw_mode().expect("Could not disable raw mode");
+    terminal.show_cursor().expect("Could not show cursor");
+    terminal.clear().expect("Could not clear terminal");
+    execute!(std::io::stdout(), DisableMouseCapture).expect("Could not disable mouse capture");
 
     println!("\n\n\n\n\n{}", msg.unwrap_or(""));
 
-    process::exit(0)
+    process::exit(if is_error { 1 } else { 0 })
 }
