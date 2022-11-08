@@ -2,6 +2,12 @@
 name = "zentime-rs"
 version = "0.3.1"
 edition = "2021"
+description = "Pomodoro and productivity timer written in Rust"
+license = "MIT"
+repository = "https://github.com/on3iro/zentime-rs"
+readme = "README.md"
+keywords = ["timer", "pomodoro", "productivity"]
+categories = ["command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
