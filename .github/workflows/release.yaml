@@ -68,10 +68,11 @@ jobs:
       # Publish #
       ###########
 
-      - name: Release
+      - name: Add artefact to github release
         uses: softprops/action-gh-release@v1
         with:
           files: zentime.tar.gz
+
       - name: Update Homebrew formula
         uses: mislav/bump-homebrew-formula-action@v1
         with:
@@ -84,3 +85,8 @@ jobs:
         env:
           COMMITTER_TOKEN: ${{ secrets.ZENTIME_TAP_TOKEN }}
 
+      - name: Publish to crates.io
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --token ${{ secrets.CRATES_IO_TOKEN }}
