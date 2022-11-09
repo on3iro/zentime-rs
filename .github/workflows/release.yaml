@@ -85,6 +85,9 @@ jobs:
         env:
           COMMITTER_TOKEN: ${{ secrets.ZENTIME_TAP_TOKEN }}
 
+      - name: Clean git repo in preparation for cargo publish
+        run: git reset --hard && git clean -df
+
       - name: Publish to crates.io
         uses: actions-rs/cargo@v1
         with:
