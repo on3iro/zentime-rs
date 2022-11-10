@@ -115,24 +115,28 @@ fn timer_view(
     Ok(())
 }
 
-pub fn render_thread(view_receiver: Receiver<TerminalEvent>) -> thread::JoinHandle<()> {
-    enable_raw_mode().expect("Can run in raw mode");
-    let stdout = std::io::stdout();
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend).expect("Terminal could be created");
-    terminal.clear().expect("Terminal could be cleared");
+pub struct TerminalRenderThread {}
 
-    thread::spawn(move || loop {
-        match view_receiver.recv() {
-            Ok(TerminalEvent::View(state)) => {
-                if let Err(err) = timer_view(&mut terminal, state) {
-                    quit(&mut terminal, Some(&format!("ERROR: {}", err)), true);
-                };
+impl TerminalRenderThread {
+    pub fn spawn(view_receiver: Receiver<TerminalEvent>) -> thread::JoinHandle<()> {
+        enable_raw_mode().expect("Can run in raw mode");
+        let stdout = std::io::stdout();
+        let backend = CrosstermBackend::new(stdout);
+        let mut terminal = Terminal::new(backend).expect("Terminal could be created");
+        terminal.clear().expect("Terminal could be cleared");
+
+        thread::spawn(move || loop {
+            match view_receiver.recv() {
+                Ok(TerminalEvent::View(state)) => {
+                    if let Err(err) = timer_view(&mut terminal, state) {
+                        quit(&mut terminal, Some(&format!("ERROR: {}", err)), true);
+                    };
+                }
+                Ok(TerminalEvent::Quit) => {
+                    quit(&mut terminal, Some("Cya!"), false);
+                }
+                _ => {}
             }
-            Ok(TerminalEvent::Quit) => {
-                quit(&mut terminal, Some("Cya!"), false);
-            }
-            _ => {}
-        }
-    })
+        })
+    }
 }

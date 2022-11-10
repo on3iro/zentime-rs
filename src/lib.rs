@@ -7,7 +7,7 @@ pub use events::{AppAction, TerminalEvent, ViewState};
 use std::path::PathBuf;
 use subcommands::run::run;
 
-mod config;
+pub mod config;
 mod events;
 mod input;
 mod notification;
@@ -32,7 +32,7 @@ struct Cli {
 
 /// Available cli sub commands
 #[derive(Subcommand)]
-pub enum Commands {}
+enum Commands {}
 
 /// Runs the specified zentime cli command
 pub fn run_cli() {
