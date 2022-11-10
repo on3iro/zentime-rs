@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use crate::config::Config;
 use crate::config::NotificationConfig;
 use crate::events::AppAction;
@@ -183,11 +185,13 @@ impl Timer<Paused> {
     pub fn init(self) -> anyhow::Result<()> {
         loop {
             let time = self.internal_state.remaining_time.as_secs();
-            self.view_sender.send(TerminalEvent::View(ViewState {
-                is_break: self.shared_state.is_break,
-                round: self.shared_state.round,
-                time: seconds_to_time(time),
-            }))?;
+            self.view_sender
+                .send(TerminalEvent::View(ViewState {
+                    is_break: self.shared_state.is_break,
+                    round: self.shared_state.round,
+                    time: seconds_to_time(time),
+                }))
+                .context("View sender could not send")?;
 
             let action = match self
                 .app_action_receiver
@@ -201,6 +205,7 @@ impl Timer<Paused> {
             match action {
                 AppAction::Quit => {
                     self.view_sender.send(TerminalEvent::Quit)?;
+                    return Ok(());
                 }
                 AppAction::PlayPause => {
                     self.unpause()?;
@@ -237,11 +242,13 @@ impl Timer<Running> {
     fn start(self) -> anyhow::Result<()> {
         while self.internal_state.target_time > Instant::now() {
             let time = (self.internal_state.target_time - Instant::now()).as_secs();
-            self.view_sender.send(TerminalEvent::View(ViewState {
-                is_break: self.shared_state.is_break,
-                round: self.shared_state.round,
-                time: seconds_to_time(time),
-            }))?;
+            self.view_sender
+                .send(TerminalEvent::View(ViewState {
+                    is_break: self.shared_state.is_break,
+                    round: self.shared_state.round,
+                    time: seconds_to_time(time),
+                }))
+                .context("View sender could not send")?;
 
             let action = match self
                 .app_action_receiver
@@ -254,7 +261,10 @@ impl Timer<Running> {
 
             match action {
                 AppAction::Quit => {
-                    self.view_sender.send(TerminalEvent::Quit)?;
+                    self.view_sender
+                        .send(TerminalEvent::Quit)
+                        .context("Could not send quit event")?;
+                    return Ok(());
                 }
                 AppAction::PlayPause => {
                     return self.pause();
