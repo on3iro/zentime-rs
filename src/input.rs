@@ -1,7 +1,5 @@
 use crate::events::AppAction;
-use crossterm::event::KeyCode;
-use crossterm::event::KeyEvent;
-use crossterm::event::KeyModifiers;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::thread::JoinHandle;
 use std::{sync::mpsc::Sender, thread, time::Duration};
 

@@ -1,9 +1,7 @@
 use crate::events::AppAction;
 use crossterm::{event::DisableMouseCapture, execute, terminal::disable_raw_mode};
-use std::io::Stdout;
-use std::process;
-use tui::backend::CrosstermBackend;
-use tui::Terminal;
+use std::{io::Stdout, process};
+use tui::{backend::CrosstermBackend, Terminal};
 
 pub fn seconds_to_time(duration: u64) -> String {
     let min = duration / 60;

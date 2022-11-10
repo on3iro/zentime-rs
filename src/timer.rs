@@ -1,19 +1,14 @@
 use anyhow::Context;
 
-use crate::config::Config;
-use crate::config::NotificationConfig;
-use crate::events::AppAction;
-use crate::events::TerminalEvent;
-use crate::events::ViewState;
-use crate::notification;
-use crate::sound;
-use crate::sound::SoundFile;
+use crate::config::{Config, NotificationConfig};
+use crate::events::{AppAction, TerminalEvent, ViewState};
 use crate::util::seconds_to_time;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::RecvTimeoutError;
-use std::sync::mpsc::Sender;
-use std::time::Duration;
-use std::time::Instant;
+use crate::{
+    notification,
+    sound::{self, SoundFile},
+};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
+use std::time::{Duration, Instant};
 
 // NOTE: I tried to use the typestate approach, like it's described here:
 // https://cliffle.com/blog/rust-typestate/

@@ -1,20 +1,15 @@
 use crate::events::ViewState;
 use anyhow::Context;
 use crossterm::terminal::enable_raw_mode;
-use std::io::Stdout;
-use std::sync::mpsc::Receiver;
-use std::thread;
-use tui::backend::CrosstermBackend;
-use tui::layout::Alignment;
-use tui::layout::{Constraint, Direction, Layout, Rect};
-use tui::style::Color;
-use tui::style::Style;
-use tui::text::Span;
-use tui::text::Spans;
-use tui::widgets::Borders;
-use tui::widgets::Paragraph;
-use tui::widgets::{Block, Tabs};
-use tui::Terminal;
+use std::{io::Stdout, sync::mpsc::Receiver, thread};
+use tui::{
+    backend::CrosstermBackend,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Style},
+    text::{Span, Spans},
+    widgets::{Block, Borders, Paragraph, Tabs},
+    Terminal,
+};
 
 use crate::events::TerminalEvent;
 use crate::util::quit;
