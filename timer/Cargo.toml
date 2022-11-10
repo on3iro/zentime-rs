@@ -1,0 +1,19 @@
+[package]
+name = "zentime-rs-timer"
+version = "0.3.4"
+edition = "2021"
+description = "Pausable productivity timer"
+license = "MIT"
+repository = "https://github.com/on3iro/zentime-rs"
+readme = "README.md"
+keywords = ["timer", "pomodoro", "productivity"]
+categories = ["command-line-utilities"]
+
+[lib]
+name = "zentime_rs_timer"
+
+[dependencies]
+rodio = "0.12"
+anyhow = "1"
+notify-rust = "4"
+serde = { version = "1", features = ["derive"] }

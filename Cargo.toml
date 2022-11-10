@@ -9,18 +9,17 @@ readme = "README.md"
 keywords = ["timer", "pomodoro", "productivity"]
 categories = ["command-line-utilities"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = ["timer"]
 
 [[bin]]
 name = "zentime"
 path = "src/main.rs"
 
 [dependencies]
+zentime-rs-timer = { path = "./timer", version = "0.3.4" }
 figment = { version = "0.10", features = ["toml"] }
-rodio = "0.12"
 anyhow = "1"
-notify-rust = "4"
-serde = { version = "1", features = ["derive"] }
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.25.0"
 tui = "0.19.0"

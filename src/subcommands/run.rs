@@ -1,7 +1,7 @@
 use crate::config::create_config;
 use crate::input::TerminalInputThread;
-use crate::timer::Timer;
 use crate::view::TerminalRenderThread;
+use zentime_rs_timer::Timer;
 
 use std::sync::mpsc;
 

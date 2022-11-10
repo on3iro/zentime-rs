@@ -1,13 +1,7 @@
-use crate::events::AppAction;
 use crossterm::{event::DisableMouseCapture, execute, terminal::disable_raw_mode};
 use std::{io::Stdout, process};
 use tui::{backend::CrosstermBackend, Terminal};
-
-pub fn seconds_to_time(duration: u64) -> String {
-    let min = duration / 60;
-    let sec = duration % 60;
-    format!("{:02}:{:02}", min, sec)
-}
+use zentime_rs_timer::events::AppAction;
 
 /// Quit by gracefully terminating
 pub fn quit(

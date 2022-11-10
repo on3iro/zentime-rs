@@ -1,4 +1,3 @@
-use crate::events::ViewState;
 use anyhow::Context;
 use crossterm::terminal::enable_raw_mode;
 use std::{io::Stdout, sync::mpsc::Receiver, thread};
@@ -10,8 +9,8 @@ use tui::{
     widgets::{Block, Borders, Paragraph, Tabs},
     Terminal,
 };
+use zentime_rs_timer::events::{TerminalEvent, ViewState};
 
-use crate::events::TerminalEvent;
 use crate::util::quit;
 
 /// Base layout of the program

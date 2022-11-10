@@ -1,11 +1,13 @@
-use crate::events::AppAction;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::thread::JoinHandle;
 use std::{sync::mpsc::Sender, thread, time::Duration};
+use zentime_rs_timer::events::AppAction;
 
 use crossterm::event::{self, Event};
 
-use crate::events::InputEvent;
+pub enum InputEvent<I> {
+    Input(I),
+}
 
 pub struct TerminalInputThread {}
 
