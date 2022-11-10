@@ -3,6 +3,7 @@
 //! Zentime cli
 
 use clap::{Parser, Subcommand};
+pub use events::{AppAction, TerminalEvent, ViewState};
 use std::path::PathBuf;
 use subcommands::run::run;
 
@@ -12,9 +13,10 @@ mod input;
 mod notification;
 mod sound;
 mod subcommands;
-mod timer;
 mod util;
 mod view;
+
+pub mod timer;
 
 /// Starts the timer or attaches to an already running timer
 #[derive(Parser)]

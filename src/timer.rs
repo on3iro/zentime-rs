@@ -1,15 +1,12 @@
 use crate::config::Config;
 use crate::config::NotificationConfig;
 use crate::events::AppAction;
-use crate::events::InputEvent;
 use crate::events::TerminalEvent;
 use crate::events::ViewState;
-use crate::input::handle_input;
 use crate::notification;
 use crate::sound;
 use crate::sound::SoundFile;
 use crate::util::seconds_to_time;
-use crossterm::event::Event;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::RecvTimeoutError;
 use std::sync::mpsc::Sender;
@@ -40,7 +37,7 @@ pub struct PomodoroTimer<S: TimerState> {
     config: Config,
     shared_state: Box<ActualTimerState>,
     internal_state: S,
-    input_receiver: Receiver<InputEvent<Event>>,
+    input_receiver: Receiver<AppAction>,
     view_sender: Sender<TerminalEvent>,
 }
 
@@ -120,7 +117,7 @@ impl<S: TimerState> PomodoroTimer<S> {
 impl PomodoroTimer<Paused> {
     /// Creates a new paused timer
     pub fn new(
-        input_receiver: Receiver<InputEvent<Event>>,
+        input_receiver: Receiver<AppAction>,
         view_sender: Sender<TerminalEvent>,
         config: Config,
     ) -> Self {
@@ -149,7 +146,7 @@ impl PomodoroTimer<Paused> {
             }))?;
 
             let action = match self.input_receiver.recv_timeout(Duration::from_secs(1)) {
-                Ok(event) => handle_input(event),
+                Ok(action) => action,
                 Err(RecvTimeoutError::Disconnected) => AppAction::Quit,
                 _ => AppAction::None,
             };
@@ -200,7 +197,7 @@ impl PomodoroTimer<Running> {
             }))?;
 
             let action = match self.input_receiver.recv_timeout(Duration::from_secs(1)) {
-                Ok(event) => handle_input(event),
+                Ok(action) => action,
                 Err(RecvTimeoutError::Disconnected) => AppAction::Quit,
                 _ => AppAction::None,
             };
