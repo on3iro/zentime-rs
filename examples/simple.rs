@@ -3,8 +3,8 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::Duration;
 use zentime_rs::config::create_config;
-use zentime_rs::timer::Timer;
 use zentime_rs::{AppAction, TerminalEvent};
+use zentime_rs_timer::timer::Timer;
 
 fn main() {
     let config = create_config("")
