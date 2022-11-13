@@ -21,7 +21,7 @@ fn main() {
             terminal_input_receiver,
             view_sender,
             config,
-            |state, msg| println!("{}: {}", state.round, msg),
+            Box::new(move |state, msg| println!("{}: {}", state.round, msg)),
         )
         .init()
         .is_err()

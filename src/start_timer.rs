@@ -21,10 +21,10 @@ pub fn start_timer(config_path: &str) {
         terminal_input_receiver,
         view_sender,
         config.timers,
-        |_, msg| {
+        Box::new(move |_, msg| {
             // We simply discard errors here for now...
             dispatch_notification(config.notifications, msg).ok();
-        },
+        }),
     )
     .init()
     .expect("Could not initialize timer");

@@ -17,7 +17,7 @@ name = "zentime"
 path = "src/main.rs"
 
 [dependencies]
-zentime-rs-timer = { path = "./timer" }
+zentime-rs-timer = { path = "./timer", version = "0.5" }
 figment = { version = "0.10", features = ["toml"] }
 rodio = "0.12"
 notify-rust = "4"
