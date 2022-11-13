@@ -1,6 +1,6 @@
 [package]
 name = "zentime-rs-timer"
-version = "0.3.4"
+version = "0.4.0"
 edition = "2021"
 description = "Pausable productivity timer"
 license = "MIT"
@@ -13,7 +13,5 @@ categories = ["command-line-utilities"]
 name = "zentime_rs_timer"
 
 [dependencies]
-rodio = "0.12"
 anyhow = "1"
-notify-rust = "4"
 serde = { version = "1", features = ["derive"] }

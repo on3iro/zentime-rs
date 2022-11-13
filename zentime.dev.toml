@@ -1,0 +1,26 @@
+[view]
+
+interface = 'minimal'
+
+[timers]
+# Timer length in seconds
+timer = 10 # => 25 minutes
+
+# Minor break length in seconds
+minor_break = 10 # => 5 minutes
+
+# Major break length in seconds
+major_break = 15 # => 15 minutes
+
+# Number of intervals before major break
+intervals = 2
+
+[notifications]
+# Enable/Disable bell
+enable_bell = true
+
+# Notification bell volume
+volume = 0.5
+
+# Show OS-notification
+show_notification = true

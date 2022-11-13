@@ -1,6 +1,13 @@
 use anyhow::Context;
-use crossterm::terminal::enable_raw_mode;
-use std::{io::Stdout, sync::mpsc::Receiver, thread};
+use crossterm::cursor::Hide;
+use crossterm::terminal::Clear;
+use crossterm::{execute, style::Stylize, terminal::enable_raw_mode};
+use std::fmt::format;
+use std::{
+    io::{Stdout, Write},
+    sync::mpsc::Receiver,
+    thread,
+};
 use tui::{
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -11,6 +18,7 @@ use tui::{
 };
 use zentime_rs_timer::events::{TerminalEvent, ViewState};
 
+use crate::config::ViewConfig;
 use crate::util::quit;
 
 /// Base layout of the program
@@ -109,22 +117,28 @@ fn timer_view(
     Ok(())
 }
 
-pub struct TerminalRenderThread {}
+pub struct TerminalRenderer {}
 
-impl TerminalRenderThread {
-    pub fn spawn(view_receiver: Receiver<TerminalEvent>) -> thread::JoinHandle<()> {
+impl TerminalRenderer {
+    pub fn spawn(
+        view_receiver: Receiver<TerminalEvent>,
+        config: ViewConfig,
+    ) -> thread::JoinHandle<()> {
         enable_raw_mode().expect("Can run in raw mode");
         let stdout = std::io::stdout();
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend).expect("Terminal could be created");
         terminal.clear().expect("Terminal could be cleared");
+        execute!(std::io::stdout(), Hide).expect("Could not execute crossterm macros");
 
         thread::spawn(move || loop {
             match view_receiver.recv() {
                 Ok(TerminalEvent::View(state)) => {
-                    if let Err(err) = timer_view(&mut terminal, state) {
-                        quit(&mut terminal, Some(&format!("ERROR: {}", err)), true);
-                    };
+                    if config.interface == "minimal" {
+                        TerminalRenderer::minimal(&mut terminal, state);
+                    } else {
+                        TerminalRenderer::default(&mut terminal, state);
+                    }
                 }
                 Ok(TerminalEvent::Quit) => {
                     quit(&mut terminal, Some("Cya!"), false);
@@ -132,5 +146,26 @@ impl TerminalRenderThread {
                 _ => {}
             }
         })
+    }
+
+    fn minimal(terminal: &mut Terminal<CrosstermBackend<Stdout>>, state: ViewState) {
+        let timer = format!(" {} ", state.time.white());
+        let round = format!("Round: {}", state.round);
+        print!(
+            "\r{} {} {}",
+            timer.on_dark_red(),
+            round.green(),
+            if state.is_break { "Break" } else { "Focus" }
+        );
+
+        if let Err(err) = std::io::stdout().flush() {
+            quit(terminal, Some(&format!("ERROR: {}", err)), true);
+        };
+    }
+
+    fn default(terminal: &mut Terminal<CrosstermBackend<Stdout>>, state: ViewState) {
+        if let Err(err) = timer_view(terminal, state) {
+            quit(terminal, Some(&format!("ERROR: {}", err)), true);
+        };
     }
 }

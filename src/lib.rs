@@ -2,12 +2,15 @@
 
 //! Zentime cli
 
+use crate::start_timer::start_timer;
 use clap::{Parser, Subcommand};
-use subcommands::run::run;
 pub use zentime_rs_timer::events::{AppAction, TerminalEvent, ViewState};
 
 pub mod config;
 mod input;
+mod notification;
+mod sound;
+mod start_timer;
 mod subcommands;
 mod util;
 mod view;
@@ -36,6 +39,6 @@ pub fn run_cli() {
         // TODO
         Some(_commands) => {}
 
-        None => run(&cli.config),
+        None => start_timer(&cli.config),
     }
 }
