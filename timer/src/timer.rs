@@ -43,17 +43,13 @@ pub struct TimerStateData {
 /// ## Example
 ///
 /// ```
-/// use zentime_rs::config::{create_config};
-/// use zentime_rs::{TerminalEvent, AppAction};
-/// use zentime_rs::timer::{Timer};
+/// use zentime_rs_timer::config::{TimerConfig};
+/// use zentime_rs_timer::events::{TerminalEvent, AppAction};
+/// use zentime_rs_timer::timer::{Timer};
 /// use std::time::Duration;
 /// use std::sync::mpsc;
 /// use std::thread;
 /// use std::sync::mpsc::{Sender, Receiver};
-///
-/// let config = create_config("")
-///     .extract()
-///     .expect("Could not create config");
 ///
 /// let (terminal_input_sender, terminal_input_receiver): (Sender<AppAction>, Receiver<AppAction>) =
 ///     mpsc::channel();
@@ -68,7 +64,9 @@ pub struct TimerStateData {
 ///
 /// // Run timer in its own thread so it does not block the current one
 /// thread::spawn(move || {
-///     Timer::new(terminal_input_receiver, view_sender, config)
+///     Timer::new(terminal_input_receiver, view_sender, TimerConfig::default(), |state, msg| {
+///         println!("{} {}", state.round, msg);
+///     })
 ///         .init()
 ///         .expect("Could not initialize timer");
 /// });

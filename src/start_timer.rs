@@ -1,26 +1,10 @@
-use crate::config::NotificationConfig;
 use crate::config::{create_config, Config};
 use crate::input::TerminalInputThread;
-use crate::notification;
-use crate::sound::{play, SoundFile};
+use crate::notification::dispatch_notification;
 use crate::view::TerminalRenderer;
 use zentime_rs_timer::Timer;
 
 use std::sync::mpsc;
-
-fn dispatch_notification(
-    config: NotificationConfig,
-    notification_string: &str,
-) -> anyhow::Result<()> {
-    if config.enable_bell {
-        play(SoundFile::Bell, config.volume);
-    }
-
-    if config.show_notification {
-        notification::send(notification_string)?;
-    }
-    Ok(())
-}
 
 pub fn start_timer(config_path: &str) {
     let config: Config = create_config(config_path)
