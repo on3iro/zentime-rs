@@ -29,8 +29,14 @@ impl Default for NotificationConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone, Copy, Default)]
+#[derive(Deserialize, Serialize, Clone, Default)]
+pub struct ViewConfig {
+    pub interface: String,
+}
+
+#[derive(Deserialize, Serialize, Clone, Default)]
 pub struct Config {
+    pub view: ViewConfig,
     pub timers: TimerConfig,
     pub notifications: NotificationConfig,
 }

@@ -15,7 +15,7 @@ pub fn start_timer(config_path: &str) {
     let (view_sender, view_receiver) = mpsc::channel();
 
     TerminalInputThread::spawn(terminal_input_sender);
-    let render_thread_handle = TerminalRenderer::spawn(view_receiver);
+    let render_thread_handle = TerminalRenderer::spawn(view_receiver, config.view);
 
     Timer::new(
         terminal_input_receiver,

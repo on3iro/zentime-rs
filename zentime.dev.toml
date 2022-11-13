@@ -1,3 +1,7 @@
+[view]
+
+interface = 'minimal'
+
 [timers]
 # Timer length in seconds
 timer = 10 # => 25 minutes

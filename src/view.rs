@@ -18,6 +18,7 @@ use tui::{
 };
 use zentime_rs_timer::events::{TerminalEvent, ViewState};
 
+use crate::config::ViewConfig;
 use crate::util::quit;
 
 /// Base layout of the program
@@ -119,7 +120,10 @@ fn timer_view(
 pub struct TerminalRenderer {}
 
 impl TerminalRenderer {
-    pub fn spawn(view_receiver: Receiver<TerminalEvent>) -> thread::JoinHandle<()> {
+    pub fn spawn(
+        view_receiver: Receiver<TerminalEvent>,
+        config: ViewConfig,
+    ) -> thread::JoinHandle<()> {
         enable_raw_mode().expect("Can run in raw mode");
         let stdout = std::io::stdout();
         let backend = CrosstermBackend::new(stdout);
@@ -130,8 +134,11 @@ impl TerminalRenderer {
         thread::spawn(move || loop {
             match view_receiver.recv() {
                 Ok(TerminalEvent::View(state)) => {
-                    // TerminalRenderer::default(&mut terminal, state);
-                    TerminalRenderer::minimal(&mut terminal, state);
+                    if config.interface == "minimal" {
+                        TerminalRenderer::minimal(&mut terminal, state);
+                    } else {
+                        TerminalRenderer::default(&mut terminal, state);
+                    }
                 }
                 Ok(TerminalEvent::Quit) => {
                     quit(&mut terminal, Some("Cya!"), false);
