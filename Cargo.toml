@@ -17,10 +17,13 @@ name = "zentime"
 path = "src/main.rs"
 
 [dependencies]
-zentime-rs-timer = { path = "./timer", version = "0.3.4" }
+zentime-rs-timer = { path = "./timer" }
 figment = { version = "0.10", features = ["toml"] }
+rodio = "0.12"
+notify-rust = "4"
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.25.0"
 tui = "0.19.0"
 shellexpand = "2.1.0"
+serde = { version = "1", features = ["derive"] }

@@ -1,17 +1,16 @@
 use anyhow::Context;
 
-use crate::config::{Config, NotificationConfig};
+use crate::config::TimerConfig;
 use crate::events::{AppAction, TerminalEvent, ViewState};
 use crate::util::seconds_to_time;
-use crate::{
-    notification,
-    sound::{self, SoundFile},
-};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};
 
 // NOTE: I tried to use the typestate approach, like it's described here:
 // https://cliffle.com/blog/rust-typestate/
+
+// TODO
+// use thiserror crate
 
 /// Empty trait implemented by structs (e.g. Paused, Running)
 pub trait TimerState {}
@@ -29,9 +28,10 @@ pub struct Running {
 impl TimerState for Paused {}
 impl TimerState for Running {}
 
-struct TimerStateData {
-    round: u64,
-    is_break: bool,
+#[derive(Clone, Copy)]
+pub struct TimerStateData {
+    pub round: u64,
+    pub is_break: bool,
 }
 
 /// Timer which can either be in a paused state or a running state.
@@ -73,33 +73,20 @@ struct TimerStateData {
 ///         .expect("Could not initialize timer");
 /// });
 /// ```
-pub struct Timer<S: TimerState> {
-    config: Config,
+pub struct Timer<S: TimerState, T: Fn(TimerStateData, &str) + Copy> {
+    config: TimerConfig,
+    on_interval_end: T,
     shared_state: Box<TimerStateData>,
     internal_state: S,
     app_action_receiver: Receiver<AppAction>,
     view_sender: Sender<TerminalEvent>,
 }
 
-impl<S: TimerState> Timer<S> {
-    fn dispatch_notification(
-        config: NotificationConfig,
-        notification_string: &str,
-    ) -> anyhow::Result<()> {
-        if config.enable_bell {
-            sound::play(SoundFile::Bell, config.volume);
-        }
-
-        if config.show_notification {
-            notification::send(notification_string)?;
-        }
-        Ok(())
-    }
-
-    fn next(self, notify: bool) -> anyhow::Result<()> {
-        let is_major_break = self.shared_state.round % self.config.timers.intervals == 0;
-
-        let config = self.config.notifications;
+impl<S: TimerState, T: Fn(TimerStateData, &str) + Copy> Timer<S, T> {
+    fn next(self, is_timer_end: bool) -> anyhow::Result<()> {
+        let is_major_break = self.shared_state.round % self.config.intervals == 0;
+        let shared_state = self.shared_state.clone();
+        let on_interval_end = self.on_interval_end;
 
         let (new_timer, notification_string) = if self.shared_state.is_break {
             (self.new_timer(), "Break is over")
@@ -110,22 +97,23 @@ impl<S: TimerState> Timer<S> {
             )
         };
 
-        if notify {
-            Timer::<S>::dispatch_notification(config, notification_string)?;
+        if is_timer_end {
+            on_interval_end(*shared_state, notification_string);
         }
 
         new_timer.init()
     }
 
-    fn new_break_timer(self, is_major_break: bool) -> Timer<Paused> {
+    fn new_break_timer(self, is_major_break: bool) -> Timer<Paused, T> {
         let break_length = if is_major_break {
-            self.config.timers.major_break
+            self.config.major_break
         } else {
-            self.config.timers.minor_break
+            self.config.minor_break
         };
 
         Timer {
             app_action_receiver: self.app_action_receiver,
+            on_interval_end: self.on_interval_end,
             view_sender: self.view_sender,
             config: self.config,
             shared_state: Box::new(TimerStateData {
@@ -138,11 +126,12 @@ impl<S: TimerState> Timer<S> {
         }
     }
 
-    fn new_timer(self) -> Timer<Paused> {
-        let remaining_time = Duration::from_secs(self.config.timers.timer);
+    fn new_timer(self) -> Timer<Paused, T> {
+        let remaining_time = Duration::from_secs(self.config.timer);
 
         Timer {
             app_action_receiver: self.app_action_receiver,
+            on_interval_end: self.on_interval_end,
             view_sender: self.view_sender,
             config: self.config,
             shared_state: Box::new(TimerStateData {
@@ -154,17 +143,19 @@ impl<S: TimerState> Timer<S> {
     }
 }
 
-impl Timer<Paused> {
+impl<T: Fn(TimerStateData, &str) + Copy> Timer<Paused, T> {
     /// Creates a new timer in paused state
     pub fn new(
         input_receiver: Receiver<AppAction>,
         view_sender: Sender<TerminalEvent>,
-        config: Config,
+        config: TimerConfig,
+        on_interval_end: T,
     ) -> Self {
-        let remaining_time = Duration::from_secs(config.timers.timer);
+        let remaining_time = Duration::from_secs(config.timer);
 
         Self {
             config,
+            on_interval_end,
             app_action_receiver: input_receiver,
             view_sender,
             shared_state: Box::new(TimerStateData {
@@ -221,6 +212,7 @@ impl Timer<Paused> {
     fn unpause(self) -> anyhow::Result<()> {
         Timer {
             app_action_receiver: self.app_action_receiver,
+            on_interval_end: self.on_interval_end,
             view_sender: self.view_sender,
             config: self.config,
             shared_state: self.shared_state,
@@ -232,7 +224,7 @@ impl Timer<Paused> {
     }
 }
 
-impl Timer<Running> {
+impl<T: Fn(TimerStateData, &str) + Copy> Timer<Running, T> {
     /// Runs the timer and awaits input
     fn start(self) -> anyhow::Result<()> {
         while self.internal_state.target_time > Instant::now() {
@@ -280,6 +272,7 @@ impl Timer<Running> {
             app_action_receiver: self.app_action_receiver,
             view_sender: self.view_sender,
             config: self.config,
+            on_interval_end: self.on_interval_end,
             shared_state: self.shared_state,
             internal_state: Paused {
                 remaining_time: self.internal_state.target_time - Instant::now(),

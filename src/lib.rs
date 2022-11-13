@@ -8,6 +8,8 @@ pub use zentime_rs_timer::events::{AppAction, TerminalEvent, ViewState};
 
 pub mod config;
 mod input;
+mod notification;
+mod sound;
 mod start_timer;
 mod subcommands;
 mod util;

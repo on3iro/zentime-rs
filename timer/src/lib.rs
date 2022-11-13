@@ -6,6 +6,3 @@ pub mod config;
 pub mod events;
 pub mod timer;
 pub mod util;
-
-mod notification;
-mod sound;

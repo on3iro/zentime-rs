@@ -2,25 +2,32 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::Duration;
-use zentime_rs::config::create_config;
-use zentime_rs::{AppAction, TerminalEvent};
+use zentime_rs_timer::config::TimerConfig;
+use zentime_rs_timer::events::AppAction;
+use zentime_rs_timer::events::TerminalEvent;
 use zentime_rs_timer::timer::Timer;
 
 fn main() {
-    let config = create_config("")
-        .extract()
-        .expect("Could not create config");
-
     let (terminal_input_sender, terminal_input_receiver): (Sender<AppAction>, Receiver<AppAction>) =
         mpsc::channel();
     let (view_sender, view_receiver): (Sender<TerminalEvent>, Receiver<TerminalEvent>) =
         mpsc::channel();
 
+    let config = TimerConfig::default();
+
     // Run timer in its own thread so it does not block the current one
     thread::spawn(move || {
-        Timer::new(terminal_input_receiver, view_sender, config)
-            .init()
-            .expect("ERROR: Timer hung up");
+        if Timer::new(
+            terminal_input_receiver,
+            view_sender,
+            config,
+            |state, msg| println!("{}: {}", state.round, msg),
+        )
+        .init()
+        .is_err()
+        {
+            // Do nothing
+        };
     });
 
     let action_jh = thread::spawn(move || {
