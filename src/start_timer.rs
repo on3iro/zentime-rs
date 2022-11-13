@@ -1,11 +1,11 @@
 use crate::config::create_config;
 use crate::input::TerminalInputThread;
-use crate::view::TerminalRenderThread;
+use crate::view::TerminalRenderer;
 use zentime_rs_timer::Timer;
 
 use std::sync::mpsc;
 
-pub fn run(config_path: &str) {
+pub fn start_timer(config_path: &str) {
     let config = create_config(config_path)
         .extract()
         .expect("Could not create config");
@@ -14,7 +14,7 @@ pub fn run(config_path: &str) {
     let (view_sender, view_receiver) = mpsc::channel();
 
     TerminalInputThread::spawn(terminal_input_sender);
-    let render_thread_handle = TerminalRenderThread::spawn(view_receiver);
+    let render_thread_handle = TerminalRenderer::spawn(view_receiver);
 
     Timer::new(terminal_input_receiver, view_sender, config)
         .init()
