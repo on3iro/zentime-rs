@@ -28,10 +28,17 @@ pub struct Running {
 impl TimerState for Paused {}
 impl TimerState for Running {}
 
+/// State which is shared between timers when they transition from one timer state to the
+/// next. Some of its information is also being shared with the `view_sender`.
 #[derive(Clone, Copy)]
 pub struct TimerStateData {
-    pub round: u64,
+    /// State that denotes if the current timer is a break timer.
+    /// If set to `false` the current timer is a regular focus interval timer.
     pub is_break: bool,
+
+    /// The current pomodoro round.
+    /// This is incremented after each break.
+    pub round: u64,
 }
 
 type OnTimerEnd = Box<dyn Fn(TimerStateData, &str)>;
@@ -74,15 +81,31 @@ type OnTimerEnd = Box<dyn Fn(TimerStateData, &str)>;
 /// });
 /// ```
 pub struct Timer<S: TimerState> {
+    /// Config describin how long intervals are etc.
     config: TimerConfig,
+
+    // TODO make this optional
+    /// Callback closure which is called at the end of each timer
     on_interval_end: OnTimerEnd,
+
+    /// State shared between timers when they transition into each other
     shared_state: Box<TimerStateData>,
+
+    /// Internal state data associated with a certain timer state (e.g. [Paused] or [Running])
     internal_state: S,
+
+    /// Channel-receiver of [AppAction]
     app_action_receiver: Receiver<AppAction>,
+
+    /// Channel-sender of [TerminalEvent]
     view_sender: Sender<TerminalEvent>,
 }
 
 impl<S: TimerState> Timer<S> {
+    /// Transitions a timer from one timer to the next.
+    /// The next timer will either be a break timer or a regular timer.
+    /// Either way it will be initalized in a paused state.
+    /// If [is_timer_end] is set to true, the [Timer::on_interval_end] will be called.
     fn next(self, is_timer_end: bool) -> anyhow::Result<()> {
         let is_major_break = self.shared_state.round % self.config.intervals == 0;
         let shared_state = self.shared_state.clone();
@@ -103,6 +126,8 @@ impl<S: TimerState> Timer<S> {
         new_timer.init()
     }
 
+    /// Creates a new break timer whose length will either be that of a
+    /// [TimerConfig::minor_break] or [TimerConfig::major_break]
     fn new_break_timer(self, is_major_break: bool) -> Timer<Paused> {
         let break_length = if is_major_break {
             self.config.major_break
@@ -125,6 +150,7 @@ impl<S: TimerState> Timer<S> {
         }
     }
 
+    /// Creates a new regular interval timer
     fn new_timer(self) -> Timer<Paused> {
         let remaining_time = Duration::from_secs(self.config.timer);
 
@@ -142,8 +168,11 @@ impl<S: TimerState> Timer<S> {
     }
 }
 
+/// Implementation of the [Paused] state for [Timer]
 impl Timer<Paused> {
-    /// Creates a new timer in paused state
+    /// Creates a new timer in paused state.
+    /// You have to call [Self::init()] to make the timer listen for inputs on its
+    /// `input_receiver` so that it can actually be started.
     pub fn new(
         input_receiver: Receiver<AppAction>,
         view_sender: Sender<TerminalEvent>,
@@ -224,7 +253,9 @@ impl Timer<Paused> {
 }
 
 impl Timer<Running> {
-    /// Runs the timer and awaits input
+    /// Runs the timer and awaits input.
+    /// Depending on the input [AppAction] the timer might, Quit (and inform [Self::view_sender] about this),
+    /// transition into a paused state or jump to the next interval.
     fn start(self) -> anyhow::Result<()> {
         while self.internal_state.target_time > Instant::now() {
             let time = (self.internal_state.target_time - Instant::now()).as_secs();
@@ -265,7 +296,8 @@ impl Timer<Running> {
         self.next(true)
     }
 
-    /// Transitions the running timer into a paused timer state
+    /// Transitions the running timer into a paused timer state and calls `init()` on_interval_end
+    /// it, so that the new timer is ready to receive an [AppAction]
     fn pause(self) -> anyhow::Result<()> {
         Timer {
             app_action_receiver: self.app_action_receiver,
