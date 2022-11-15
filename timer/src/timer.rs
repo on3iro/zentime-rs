@@ -1,11 +1,8 @@
 //! Implementation of the actual timer logic
 
-use anyhow::Context;
-
 use crate::config::TimerConfig;
-use crate::events::{AppAction, TerminalEvent, ViewState};
+use crate::events::{AppAction, ViewState};
 use crate::util::seconds_to_time;
-use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};
 
 // NOTE: I tried to use the typestate approach, like it's described here:
@@ -43,13 +40,39 @@ pub struct TimerStateData {
     pub round: u64,
 }
 
+// TODO return results on these (and use thiserror instead of anyhow)
 type OnTimerEnd = Box<dyn Fn(TimerStateData, &str)>;
+type OnTick = Box<dyn Fn(ViewState) -> Option<AppAction>>;
 
 /// Timer which can either be in a paused state or a running state.
 /// To instantiate the timer run `Timer::new()`.
 /// To actually start it call `Timer::init()`
 /// This puts the timer into a paused state waiting for [AppAction](AppAction)s to be sent down
 /// the input channel. For example an [AppAction::PlayPause](AppAction::PlayPause) starts the timer.
+///
+/// ## Example
+///
+/// ```
+/// use zentime_rs_timer::config::{TimerConfig};
+/// use zentime_rs_timer::timer::{Timer};
+/// use std::thread;
+///
+/// // Run timer in its own thread so it does not block the current one
+/// thread::spawn(move || {
+///     Timer::new(
+///         TimerConfig::default(),
+///         Box::new(move |state, msg| {
+///             println!("{} {}", state.round, msg);
+///         }),
+///         Box::new(move |view_state| {
+///             println!("{:?}", view_state);
+///             None
+///         }),
+///     )
+///     .init()
+///     .expect("Could not initialize timer");
+/// });
+/// ```
 pub struct Timer<S: TimerState> {
     /// Config describin how long intervals are etc.
     config: TimerConfig,
@@ -64,11 +87,8 @@ pub struct Timer<S: TimerState> {
     /// Internal state data associated with a certain timer state (e.g. [Paused] or [Running])
     internal_state: S,
 
-    /// Channel-receiver of [AppAction]
-    app_action_receiver: Receiver<AppAction>,
-
-    /// Channel-sender of [TerminalEvent]
-    view_sender: Sender<TerminalEvent>,
+    /// Callback closure which is being run on each tick
+    on_tick: OnTick,
 }
 
 impl<S: TimerState> Timer<S> {
@@ -106,9 +126,8 @@ impl<S: TimerState> Timer<S> {
         };
 
         Timer {
-            app_action_receiver: self.app_action_receiver,
             on_interval_end: self.on_interval_end,
-            view_sender: self.view_sender,
+            on_tick: self.on_tick,
             config: self.config,
             shared_state: Box::new(TimerStateData {
                 round: self.shared_state.round,
@@ -125,9 +144,8 @@ impl<S: TimerState> Timer<S> {
         let remaining_time = Duration::from_secs(self.config.timer);
 
         Timer {
-            app_action_receiver: self.app_action_receiver,
             on_interval_end: self.on_interval_end,
-            view_sender: self.view_sender,
+            on_tick: self.on_tick,
             config: self.config,
             shared_state: Box::new(TimerStateData {
                 round: self.shared_state.round + 1,
@@ -143,19 +161,13 @@ impl Timer<Paused> {
     /// Creates a new timer in paused state.
     /// You have to call [Self::init()] to make the timer listen for inputs on its
     /// `input_receiver` so that it can actually be started.
-    pub fn new(
-        input_receiver: Receiver<AppAction>,
-        view_sender: Sender<TerminalEvent>,
-        config: TimerConfig,
-        on_interval_end: OnTimerEnd,
-    ) -> Self {
+    pub fn new(config: TimerConfig, on_interval_end: OnTimerEnd, on_tick: OnTick) -> Self {
         let remaining_time = Duration::from_secs(config.timer);
 
         Self {
             config,
             on_interval_end,
-            app_action_receiver: input_receiver,
-            view_sender,
+            on_tick,
             shared_state: Box::new(TimerStateData {
                 round: 1,
                 is_break: false,
@@ -169,37 +181,26 @@ impl Timer<Paused> {
     pub fn init(self) -> anyhow::Result<()> {
         loop {
             let time = self.internal_state.remaining_time.as_secs();
-            self.view_sender
-                .send(TerminalEvent::View(ViewState {
-                    is_break: self.shared_state.is_break,
-                    round: self.shared_state.round,
-                    time: seconds_to_time(time),
-                }))
-                .context("View sender could not send")?;
 
-            let action = match self
-                .app_action_receiver
-                .recv_timeout(Duration::from_secs(1))
-            {
-                Ok(action) => action,
-                Err(RecvTimeoutError::Disconnected) => AppAction::Quit,
-                _ => AppAction::None,
-            };
+            if let Some(action) = (self.on_tick)(ViewState {
+                is_break: self.shared_state.is_break,
+                round: self.shared_state.round,
+                time: seconds_to_time(time),
+            }) {
+                match action {
+                    AppAction::Quit => {
+                        return Ok(());
+                    }
+                    AppAction::PlayPause => {
+                        self.unpause()?;
+                        break;
+                    }
+                    AppAction::Skip => {
+                        return self.next(false);
+                    }
 
-            match action {
-                AppAction::Quit => {
-                    self.view_sender.send(TerminalEvent::Quit)?;
-                    return Ok(());
+                    AppAction::None => {}
                 }
-                AppAction::PlayPause => {
-                    self.unpause()?;
-                    break;
-                }
-                AppAction::Skip => {
-                    return self.next(false);
-                }
-
-                AppAction::None => {}
             }
         }
 
@@ -209,9 +210,8 @@ impl Timer<Paused> {
     /// Transitions the paused timer into a running timer
     fn unpause(self) -> anyhow::Result<()> {
         Timer {
-            app_action_receiver: self.app_action_receiver,
             on_interval_end: self.on_interval_end,
-            view_sender: self.view_sender,
+            on_tick: self.on_tick,
             config: self.config,
             shared_state: self.shared_state,
             internal_state: Running {
@@ -223,56 +223,12 @@ impl Timer<Paused> {
 }
 
 impl Timer<Running> {
-    /// Runs the timer and awaits input.
-    /// Depending on the input [AppAction] the timer might, Quit (and inform [Self::view_sender] about this),
-    /// transition into a paused state or jump to the next interval.
-    fn start(self) -> anyhow::Result<()> {
-        while self.internal_state.target_time > Instant::now() {
-            let time = (self.internal_state.target_time - Instant::now()).as_secs();
-            self.view_sender
-                .send(TerminalEvent::View(ViewState {
-                    is_break: self.shared_state.is_break,
-                    round: self.shared_state.round,
-                    time: seconds_to_time(time),
-                }))
-                .context("View sender could not send")?;
-
-            let action = match self
-                .app_action_receiver
-                .recv_timeout(Duration::from_secs(1))
-            {
-                Ok(action) => action,
-                Err(RecvTimeoutError::Disconnected) => AppAction::Quit,
-                _ => AppAction::None,
-            };
-
-            match action {
-                AppAction::Quit => {
-                    self.view_sender
-                        .send(TerminalEvent::Quit)
-                        .context("Could not send quit event")?;
-                    return Ok(());
-                }
-                AppAction::PlayPause => {
-                    return self.pause();
-                }
-                AppAction::Skip => {
-                    return self.next(false);
-                }
-                AppAction::None => {}
-            }
-        }
-
-        self.next(true)
-    }
-
     /// Transitions the running timer into a paused timer state and calls `init()` on_interval_end
     /// it, so that the new timer is ready to receive an [AppAction]
     fn pause(self) -> anyhow::Result<()> {
         Timer {
-            app_action_receiver: self.app_action_receiver,
-            view_sender: self.view_sender,
             config: self.config,
+            on_tick: self.on_tick,
             on_interval_end: self.on_interval_end,
             shared_state: self.shared_state,
             internal_state: Paused {
@@ -280,5 +236,35 @@ impl Timer<Running> {
             },
         }
         .init()
+    }
+
+    /// Runs the timer and awaits input.
+    /// Depending on the input [AppAction] the timer might, Quit (and inform [Self::view_sender] about this),
+    /// transition into a paused state or jump to the next interval.
+    fn start(self) -> anyhow::Result<()> {
+        while self.internal_state.target_time > Instant::now() {
+            let time = (self.internal_state.target_time - Instant::now()).as_secs();
+
+            if let Some(action) = (self.on_tick)(ViewState {
+                is_break: self.shared_state.is_break,
+                round: self.shared_state.round,
+                time: seconds_to_time(time),
+            }) {
+                match action {
+                    AppAction::Quit => {
+                        return Ok(());
+                    }
+                    AppAction::PlayPause => {
+                        return self.pause();
+                    }
+                    AppAction::Skip => {
+                        return self.next(false);
+                    }
+                    AppAction::None => {}
+                }
+            }
+        }
+
+        self.next(true)
     }
 }

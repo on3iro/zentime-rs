@@ -6,6 +6,40 @@ use zentime_rs_timer::Timer;
 
 use std::sync::mpsc;
 
+// self.view_sender
+// .send(TerminalEvent::View(ViewState {
+// is_break: self.shared_state.is_break,
+// round: self.shared_state.round,
+// time: seconds_to_time(time),
+// }))
+// .context("View sender could not send")?;
+
+// let action = match self
+// .app_action_receiver
+// .recv_timeout(Duration::from_secs(1))
+// {
+// Ok(action) => action,
+// Err(RecvTimeoutError::Disconnected) => AppAction::Quit,
+// _ => AppAction::None,
+// };
+
+// self.view_sender
+// .send(TerminalEvent::View(ViewState {
+// is_break: self.shared_state.is_break,
+// round: self.shared_state.round,
+// time: seconds_to_time(time),
+// }))
+// .context("View sender could not send")?;
+
+// let action = match self
+// .app_action_receiver
+// .recv_timeout(Duration::from_secs(1))
+// {
+// Ok(action) => action,
+// Err(RecvTimeoutError::Disconnected) => AppAction::Quit,
+// _ => AppAction::None,
+// };
+
 pub fn start_timer(config_path: &str) {
     let config: Config = create_config(config_path)
         .extract()
