@@ -1,4 +1,4 @@
-use std::sync::mpsc;
+use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::Duration;
@@ -17,15 +17,25 @@ fn main() {
 
     // Run timer in its own thread so it does not block the current one
     thread::spawn(move || {
-        if Timer::new(
-            terminal_input_receiver,
-            view_sender,
+        let timer = Timer::new(
             config,
-            Box::new(move |state, msg| println!("{}: {}", state.round, msg)),
-        )
-        .init()
-        .is_err()
-        {
+            Box::new(move |state, msg| {
+                println!("{} {}", state.round, msg);
+            }),
+            Box::new(move |view_state| -> Option<AppAction> {
+                view_sender.send(TerminalEvent::View(view_state)).unwrap();
+
+                let input = terminal_input_receiver.recv_timeout(Duration::from_secs(1));
+
+                match input {
+                    Ok(action) => Some(action),
+                    Err(RecvTimeoutError::Disconnected) => Some(AppAction::Quit),
+                    _ => None,
+                }
+            }),
+        );
+
+        if timer.init().is_err() {
             // Do nothing
         };
     });

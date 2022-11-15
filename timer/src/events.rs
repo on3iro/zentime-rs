@@ -1,6 +1,7 @@
 //! Various types that denote shared state and interactions
 
 /// Information that can be shared  with the [Timer::view_sender]
+#[derive(Debug)]
 pub struct ViewState {
     /// Denotes if the current timer is a break timer
     pub is_break: bool,
@@ -13,6 +14,7 @@ pub struct ViewState {
 }
 
 /// Describes a message passed to the [Timer::view_sender]
+#[derive(Debug)]
 pub enum TerminalEvent {
     /// Rendering information with a [ViewState]
     View(ViewState),
@@ -23,6 +25,7 @@ pub enum TerminalEvent {
 }
 
 /// Various control actions to transition into new states
+#[derive(Debug)]
 pub enum AppAction {
     /// Command the timer to stop and be dropped
     Quit,
