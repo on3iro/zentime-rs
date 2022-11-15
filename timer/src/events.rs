@@ -1,3 +1,5 @@
+//! Various types that denote shared state and interactions
+
 /// Information that can be shared  with the [Timer::view_sender]
 pub struct ViewState {
     /// Denotes if the current timer is a break timer

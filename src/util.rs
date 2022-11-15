@@ -17,5 +17,5 @@ pub fn quit(
 
     println!("\n\n\n\n\n{}", msg.unwrap_or(""));
 
-    process::exit(if is_error { 1 } else { 0 })
+    process::exit(i32::from(is_error))
 }

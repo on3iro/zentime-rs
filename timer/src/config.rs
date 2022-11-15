@@ -1,3 +1,4 @@
+//! Configuration of a [Timer]
 use serde::{Deserialize, Serialize};
 
 /// Timer configuration which determines certain aspects of the timer,

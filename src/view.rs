@@ -1,8 +1,8 @@
 use anyhow::Context;
 use crossterm::cursor::Hide;
-use crossterm::terminal::Clear;
+
 use crossterm::{execute, style::Stylize, terminal::enable_raw_mode};
-use std::fmt::format;
+
 use std::{
     io::{Stdout, Write},
     sync::mpsc::Receiver,
