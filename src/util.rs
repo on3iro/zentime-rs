@@ -1,14 +1,14 @@
 use crossterm::{cursor::Show, event::DisableMouseCapture, execute, terminal::disable_raw_mode};
 use std::{io::Stdout, process};
 use tui::{backend::CrosstermBackend, Terminal};
-use zentime_rs_timer::events::AppAction;
+use zentime_rs_timer::TimerAction;
 
 /// Quit by gracefully terminating
 pub fn quit(
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     msg: Option<&str>,
     is_error: bool,
-) -> AppAction {
+) -> TimerAction {
     disable_raw_mode().expect("Could not disable raw mode");
     terminal.show_cursor().expect("Could not show cursor");
     terminal.clear().expect("Could not clear terminal");

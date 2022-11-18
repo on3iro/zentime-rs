@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::thread::JoinHandle;
 use std::{sync::mpsc::Sender, thread, time::Duration};
-use zentime_rs_timer::events::AppAction;
+use zentime_rs_timer::TimerAction;
 
 use crossterm::event::{self, Event};
 
@@ -12,7 +12,7 @@ pub enum InputEvent<I> {
 pub struct TerminalInputThread {}
 
 impl TerminalInputThread {
-    pub fn spawn(input_worker_tx: Sender<AppAction>) -> JoinHandle<()> {
+    pub fn spawn(input_worker_tx: Sender<TimerAction>) -> JoinHandle<()> {
         thread::spawn(move || loop {
             if event::poll(Duration::from_millis(200)).expect("poll works") {
                 let crossterm_event = event::read().expect("can read events");
@@ -24,7 +24,7 @@ impl TerminalInputThread {
     }
 }
 
-fn handle_input(event: InputEvent<Event>) -> AppAction {
+fn handle_input(event: InputEvent<Event>) -> TimerAction {
     if let InputEvent::Input(Event::Key(key_event)) = event {
         match key_event {
             KeyEvent {
@@ -36,26 +36,26 @@ fn handle_input(event: InputEvent<Event>) -> AppAction {
                 modifiers: KeyModifiers::CONTROL,
                 ..
             } => {
-                return AppAction::Quit;
+                return TimerAction::Quit;
             }
 
             KeyEvent {
                 code: KeyCode::Char(' '),
                 ..
             } => {
-                return AppAction::PlayPause;
+                return TimerAction::PlayPause;
             }
 
             KeyEvent {
                 code: KeyCode::Char('s'),
                 ..
             } => {
-                return AppAction::Skip;
+                return TimerAction::Skip;
             }
 
             _ => {}
         }
     }
 
-    AppAction::None
+    TimerAction::None
 }

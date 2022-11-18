@@ -4,7 +4,6 @@
 
 use crate::start_timer::start_timer;
 use clap::{Parser, Subcommand};
-pub use zentime_rs_timer::events::{AppAction, TerminalEvent, ViewState};
 
 pub mod config;
 mod input;
@@ -12,6 +11,7 @@ mod notification;
 mod sound;
 mod start_timer;
 mod subcommands;
+mod terminal_event;
 mod util;
 mod view;
 
