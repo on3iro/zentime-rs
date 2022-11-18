@@ -1,6 +1,6 @@
 # zentime-rs
 
-![Release](https://github.com/on3iro/zentime-rs/actions/workflows/release.yml/badge.svg)
+[![Release](https://github.com/on3iro/zentime-rs/actions/workflows/release.yaml/badge.svg)](https://github.com/on3iro/zentime-rs/actions/workflows/release.yaml)
 ![docs.rs](https://img.shields.io/docsrs/zentime-rs/latest?label=docs)
 
 # Table of Contents
