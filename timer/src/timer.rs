@@ -55,7 +55,7 @@ pub struct TimerStateData {
 
 // TODO return results on these (and use thiserror instead of anyhow)
 type OnTimerEnd = Box<dyn Fn(TimerStateData, &str)>;
-type OnTick = Box<dyn Fn(ViewState) -> Option<TimerAction>>;
+type OnTick = Box<dyn FnMut(ViewState) -> Option<TimerAction>>;
 
 /// Timer which can either be in a paused state or a running state.
 /// To instantiate the timer run `Timer::new()`.
@@ -191,7 +191,7 @@ impl Timer<Paused> {
 
     /// Puts the paused timer into a waiting state waiting for input (e.g. to unpause the timer
     /// and transition it into a running state).
-    pub fn init(self) -> anyhow::Result<()> {
+    pub fn init(mut self) -> anyhow::Result<()> {
         loop {
             let time = self.internal_state.remaining_time.as_secs();
 
@@ -254,7 +254,7 @@ impl Timer<Running> {
     /// Runs the timer and awaits input.
     /// Depending on the input [TimerAction] the timer might, Quit (and inform [Self::view_sender] about this),
     /// transition into a paused state or jump to the next interval.
-    fn start(self) -> anyhow::Result<()> {
+    fn start(mut self) -> anyhow::Result<()> {
         while self.internal_state.target_time > Instant::now() {
             let time = (self.internal_state.target_time - Instant::now()).as_secs();
 

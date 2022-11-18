@@ -1,17 +1,15 @@
-use std::sync::mpsc::{self, RecvTimeoutError};
-use std::sync::mpsc::{Receiver, Sender};
-use std::thread;
+use std::thread::{self, sleep};
 use std::time::Duration;
+use tokio::task;
 use zentime_rs_timer::config::TimerConfig;
-use zentime_rs_timer::timer::{Timer, ViewState};
+use zentime_rs_timer::timer::Timer;
 use zentime_rs_timer::TimerAction;
 
-fn main() {
-    let (terminal_input_sender, terminal_input_receiver): (
-        Sender<TimerAction>,
-        Receiver<TimerAction>,
-    ) = mpsc::channel();
-    let (view_sender, view_receiver): (Sender<ViewState>, Receiver<ViewState>) = mpsc::channel();
+#[tokio::main]
+async fn main() {
+    let (terminal_input_sender, mut terminal_input_receiver) =
+        tokio::sync::mpsc::unbounded_channel();
+    let (view_sender, mut view_receiver) = tokio::sync::mpsc::unbounded_channel();
 
     let config = TimerConfig::default();
 
@@ -25,11 +23,12 @@ fn main() {
             Box::new(move |view_state| -> Option<TimerAction> {
                 view_sender.send(view_state).unwrap();
 
-                let input = terminal_input_receiver.recv_timeout(Duration::from_secs(1));
+                sleep(Duration::from_secs(1));
+
+                let input = terminal_input_receiver.try_recv();
 
                 match input {
                     Ok(action) => Some(action),
-                    Err(RecvTimeoutError::Disconnected) => Some(TimerAction::Quit),
                     _ => None,
                 }
             }),
@@ -40,27 +39,25 @@ fn main() {
         };
     });
 
-    let action_jh = thread::spawn(move || {
+    task::spawn(async move {
         // Start the timer
         terminal_input_sender.send(TimerAction::PlayPause).unwrap();
 
         // Render current timer state three seconds in a row
         for _ in 0..3 {
-            thread::sleep(Duration::from_secs(1));
-            if let Ok(state) = view_receiver.recv() {
-                println!("{}", state.time)
-            }
+            let state = view_receiver.recv().await.unwrap();
+            println!("{}", state.time);
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
 
         // Pause the timer
         terminal_input_sender.send(TimerAction::PlayPause).unwrap();
-        let state = view_receiver.recv().unwrap();
+        let state = view_receiver.recv().await.unwrap();
 
         // NOTE:
         // The received messages after pausing can be a bit irritating,
-        // depending on how long you pause the timer this is because our thread
-        // is sleeping while the paused timer thread is still sending messages submitting its
-        // (state which ofcourse will always be the same, as long as the timer is paused).
+        // depending on how long you pause the timer this is because our task
+        // is sleeping while the timer thread is still sending messages.
         // Each recv() below is basically just catching up with the timer.
         // For example if we would wait 3 seconds instead of one, we would
         // see 24:27 three times in a row, because these messages have already been queued.
@@ -69,24 +66,23 @@ fn main() {
             state.time
         );
 
-        thread::sleep(Duration::from_secs(1));
+        tokio::time::sleep(Duration::from_secs(1)).await;
 
         // Start the timer again
         terminal_input_sender.send(TimerAction::PlayPause).unwrap();
 
         // Render current timer state three seconds in a row
         for _ in 0..3 {
-            thread::sleep(Duration::from_secs(1));
-            if let Ok(state) = view_receiver.recv() {
-                println!("{}", state.time)
-            }
+            let state = view_receiver.recv().await.unwrap();
+            println!("{}", state.time);
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
 
         // Terminate timer
         terminal_input_sender
             .send(TimerAction::Quit)
             .expect("Could not send quit action");
-    });
-
-    action_jh.join().unwrap();
+    })
+    .await
+    .unwrap();
 }
