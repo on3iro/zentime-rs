@@ -1,5 +1,7 @@
+use crate::terminal_event::TerminalEvent;
 use anyhow::Context;
 use crossterm::cursor::Hide;
+use zentime_rs_timer::timer::ViewState;
 
 use crossterm::{execute, style::Stylize, terminal::enable_raw_mode};
 
@@ -16,7 +18,6 @@ use tui::{
     widgets::{Block, Borders, Paragraph, Tabs},
     Terminal,
 };
-use zentime_rs_timer::events::{TerminalEvent, ViewState};
 
 use crate::config::ViewConfig;
 use crate::util::quit;

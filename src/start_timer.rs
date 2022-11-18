@@ -1,11 +1,10 @@
 use crate::config::{create_config, Config};
 use crate::input::TerminalInputThread;
 use crate::notification::dispatch_notification;
+use crate::terminal_event::TerminalEvent;
 use crate::view::TerminalRenderer;
-use crate::TerminalEvent;
 use std::time::Duration;
-use zentime_rs_timer::events::AppAction;
-use zentime_rs_timer::Timer;
+use zentime_rs_timer::{Timer, TimerAction};
 
 use std::sync::mpsc::{self, RecvTimeoutError};
 
@@ -37,12 +36,12 @@ pub fn start_timer(config_path: &str) {
                 view_sender
                     .send(TerminalEvent::Quit)
                     .expect("Could not send quit event");
-                Some(AppAction::Quit)
+                Some(TimerAction::Quit)
             };
 
             // Handle app actions and hand them to the timer caller
             match terminal_input_receiver.recv_timeout(Duration::from_secs(1)) {
-                Ok(AppAction::Quit) => handle_quit(),
+                Ok(TimerAction::Quit) => handle_quit(),
                 Ok(action) => Some(action),
                 Err(RecvTimeoutError::Disconnected) => handle_quit(),
                 _ => None,

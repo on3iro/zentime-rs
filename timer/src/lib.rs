@@ -10,13 +10,12 @@
 //! use std::thread;
 //! use std::time::Duration;
 //! use zentime_rs_timer::config::TimerConfig;
-//! use zentime_rs_timer::events::AppAction;
-//! use zentime_rs_timer::events::TerminalEvent;
-//! use zentime_rs_timer::timer::Timer;
+//! use zentime_rs_timer::timer_action::TimerAction;
+//! use zentime_rs_timer::timer::{ Timer, ViewState };
 //!
-//!     let (terminal_input_sender, terminal_input_receiver): (Sender<AppAction>, Receiver<AppAction>) =
+//!     let (terminal_input_sender, terminal_input_receiver): (Sender<TimerAction>, Receiver<TimerAction>) =
 //!         mpsc::channel();
-//!     let (view_sender, view_receiver): (Sender<TerminalEvent>, Receiver<TerminalEvent>) =
+//!     let (view_sender, view_receiver): (Sender<ViewState>, Receiver<ViewState>) =
 //!         mpsc::channel();
 //!
 //!     let config = TimerConfig::default();
@@ -28,14 +27,14 @@
 //!             Box::new(move |state, msg| {
 //!                 println!("{} {}", state.round, msg);
 //!             }),
-//!             Box::new(move |view_state| -> Option<AppAction> {
-//!                 view_sender.send(TerminalEvent::View(view_state)).unwrap();
+//!             Box::new(move |view_state| -> Option<TimerAction> {
+//!                 view_sender.send(view_state).unwrap();
 //!
 //!                 let input = terminal_input_receiver.recv_timeout(Duration::from_secs(1));
 //!
 //!                 match input {
 //!                     Ok(action) => Some(action),
-//!                     Err(RecvTimeoutError::Disconnected) => Some(AppAction::Quit),
+//!                     Err(RecvTimeoutError::Disconnected) => Some(TimerAction::Quit),
 //!                     _ => None,
 //!                 }
 //!             }),
@@ -48,19 +47,19 @@
 //!
 //!     let action_jh = thread::spawn(move || {
 //!         // Start the timer
-//!         terminal_input_sender.send(AppAction::PlayPause).unwrap();
+//!         terminal_input_sender.send(TimerAction::PlayPause).unwrap();
 //!
 //!         // Render current timer state three seconds in a row
 //!         for _ in 0..3 {
 //!             thread::sleep(Duration::from_secs(1));
-//!             if let Ok(TerminalEvent::View(state)) = view_receiver.recv() {
+//!             if let Ok(state) = view_receiver.recv() {
 //!                 println!("{}", state.time)
 //!             }
 //!         }
 //!
 //!         // Terminate timer
 //!         terminal_input_sender
-//!             .send(AppAction::Quit)
+//!             .send(TimerAction::Quit)
 //!             .expect("Could not send quit action");
 //!     });
 //!
@@ -68,8 +67,9 @@
 //! ```
 
 pub use timer::Timer;
+pub use timer_action::TimerAction;
 
 pub mod config;
-pub mod events;
 pub mod timer;
+pub mod timer_action;
 pub mod util;

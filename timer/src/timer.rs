@@ -1,7 +1,7 @@
 //! Implementation of the actual timer logic
 
 use crate::config::TimerConfig;
-use crate::events::{AppAction, ViewState};
+use crate::timer_action::TimerAction;
 use crate::util::seconds_to_time;
 use std::time::{Duration, Instant};
 
@@ -10,6 +10,19 @@ use std::time::{Duration, Instant};
 
 // TODO
 // use thiserror crate
+
+/// Information that can be shared  with the [Timer::view_sender]
+#[derive(Debug)]
+pub struct ViewState {
+    /// Denotes if the current timer is a break timer
+    pub is_break: bool,
+
+    /// Denotes the current interval round
+    pub round: u64,
+
+    /// Denotes the current time of the timer
+    pub time: String,
+}
 
 /// Empty trait implemented by structs (e.g. Paused, Running)
 pub trait TimerState {}
@@ -42,13 +55,13 @@ pub struct TimerStateData {
 
 // TODO return results on these (and use thiserror instead of anyhow)
 type OnTimerEnd = Box<dyn Fn(TimerStateData, &str)>;
-type OnTick = Box<dyn Fn(ViewState) -> Option<AppAction>>;
+type OnTick = Box<dyn Fn(ViewState) -> Option<TimerAction>>;
 
 /// Timer which can either be in a paused state or a running state.
 /// To instantiate the timer run `Timer::new()`.
 /// To actually start it call `Timer::init()`
-/// This puts the timer into a paused state waiting for [AppAction](AppAction)s to be sent down
-/// the input channel. For example an [AppAction::PlayPause](AppAction::PlayPause) starts the timer.
+/// This puts the timer into a paused state waiting for [TimerAction](TimerAction)s to be sent down
+/// the input channel. For example an [TimerAction::PlayPause](TimerAction::PlayPause) starts the timer.
 ///
 /// ## Example
 ///
@@ -188,18 +201,18 @@ impl Timer<Paused> {
                 time: seconds_to_time(time),
             }) {
                 match action {
-                    AppAction::Quit => {
+                    TimerAction::Quit => {
                         return Ok(());
                     }
-                    AppAction::PlayPause => {
+                    TimerAction::PlayPause => {
                         self.unpause()?;
                         break;
                     }
-                    AppAction::Skip => {
+                    TimerAction::Skip => {
                         return self.next(false);
                     }
 
-                    AppAction::None => {}
+                    TimerAction::None => {}
                 }
             }
         }
@@ -224,7 +237,7 @@ impl Timer<Paused> {
 
 impl Timer<Running> {
     /// Transitions the running timer into a paused timer state and calls `init()` on_interval_end
-    /// it, so that the new timer is ready to receive an [AppAction]
+    /// it, so that the new timer is ready to receive an [TimerAction]
     fn pause(self) -> anyhow::Result<()> {
         Timer {
             config: self.config,
@@ -239,7 +252,7 @@ impl Timer<Running> {
     }
 
     /// Runs the timer and awaits input.
-    /// Depending on the input [AppAction] the timer might, Quit (and inform [Self::view_sender] about this),
+    /// Depending on the input [TimerAction] the timer might, Quit (and inform [Self::view_sender] about this),
     /// transition into a paused state or jump to the next interval.
     fn start(self) -> anyhow::Result<()> {
         while self.internal_state.target_time > Instant::now() {
@@ -251,16 +264,16 @@ impl Timer<Running> {
                 time: seconds_to_time(time),
             }) {
                 match action {
-                    AppAction::Quit => {
+                    TimerAction::Quit => {
                         return Ok(());
                     }
-                    AppAction::PlayPause => {
+                    TimerAction::PlayPause => {
                         return self.pause();
                     }
-                    AppAction::Skip => {
+                    TimerAction::Skip => {
                         return self.next(false);
                     }
-                    AppAction::None => {}
+                    TimerAction::None => {}
                 }
             }
         }
