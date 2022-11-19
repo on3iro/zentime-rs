@@ -1,26 +1,20 @@
-use crate::terminal_event::TerminalEvent;
+use crate::client::terminal::DefaultTerminal;
+use crate::client::terminal_event::TerminalEvent;
 use anyhow::Context;
-use crossterm::cursor::Hide;
 use zentime_rs_timer::timer::ViewState;
 
-use crossterm::{execute, style::Stylize, terminal::enable_raw_mode};
-
-use std::{
-    io::{Stdout, Write},
-    sync::mpsc::Receiver,
-    thread,
-};
+use std::{io::Stdout, sync::mpsc::Receiver, thread};
 use tui::{
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Paragraph, Tabs},
-    Terminal,
+    Terminal as TuiTerminal,
 };
 
-use crate::config::ViewConfig;
-use crate::util::quit;
+use super::terminal::MinimalTerminal;
+use super::terminal::Terminal;
 
 /// Base layout of the program
 fn layout(rect: Rect) -> Vec<Rect> {
@@ -90,8 +84,8 @@ fn timer(time: &str) -> Paragraph {
         .alignment(Alignment::Center)
 }
 
-fn timer_view(
-    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+pub fn timer_view(
+    terminal: &mut TuiTerminal<CrosstermBackend<Stdout>>,
     timer_state: ViewState,
 ) -> anyhow::Result<()> {
     terminal
@@ -123,50 +117,14 @@ pub struct TerminalRenderer {}
 impl TerminalRenderer {
     pub fn spawn(
         view_receiver: Receiver<TerminalEvent>,
-        config: ViewConfig,
+        interface_type: String,
     ) -> thread::JoinHandle<()> {
-        enable_raw_mode().expect("Can run in raw mode");
-        let stdout = std::io::stdout();
-        let backend = CrosstermBackend::new(stdout);
-        let mut terminal = Terminal::new(backend).expect("Terminal could be created");
-        terminal.clear().expect("Terminal could be cleared");
-        execute!(std::io::stdout(), Hide).expect("Could not execute crossterm macros");
-
-        thread::spawn(move || loop {
-            match view_receiver.recv() {
-                Ok(TerminalEvent::View(state)) => {
-                    if config.interface == "minimal" {
-                        TerminalRenderer::minimal(&mut terminal, state);
-                    } else {
-                        TerminalRenderer::default(&mut terminal, state);
-                    }
-                }
-                Ok(TerminalEvent::Quit) => {
-                    quit(&mut terminal, Some("Cya!"), false);
-                }
-                _ => {}
+        thread::spawn(move || {
+            if interface_type == "minimal" {
+                MinimalTerminal::new().render(view_receiver);
+            } else {
+                DefaultTerminal::new().render(view_receiver);
             }
         })
-    }
-
-    fn minimal(terminal: &mut Terminal<CrosstermBackend<Stdout>>, state: ViewState) {
-        let timer = format!(" {} ", state.time.white());
-        let round = format!("Round: {}", state.round);
-        print!(
-            "\r{} {} {}",
-            timer.on_dark_red(),
-            round.green(),
-            if state.is_break { "Break" } else { "Focus" }
-        );
-
-        if let Err(err) = std::io::stdout().flush() {
-            quit(terminal, Some(&format!("ERROR: {}", err)), true);
-        };
-    }
-
-    fn default(terminal: &mut Terminal<CrosstermBackend<Stdout>>, state: ViewState) {
-        if let Err(err) = timer_view(terminal, state) {
-            quit(terminal, Some(&format!("ERROR: {}", err)), true);
-        };
     }
 }

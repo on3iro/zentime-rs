@@ -1,5 +1,6 @@
 use zentime_rs::run_cli;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     run_cli();
 }
