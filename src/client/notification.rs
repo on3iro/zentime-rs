@@ -1,6 +1,5 @@
+use crate::client::sound::{play, SoundFile};
 use crate::config::NotificationConfig;
-use crate::notification;
-use crate::sound::{play, SoundFile};
 use notify_rust::{Notification, NotificationHandle};
 
 pub fn dispatch_notification(
@@ -12,7 +11,7 @@ pub fn dispatch_notification(
     }
 
     if config.show_notification {
-        notification::send(notification_string)?;
+        send(notification_string)?;
     }
     Ok(())
 }

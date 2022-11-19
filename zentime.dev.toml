@@ -1,6 +1,6 @@
 [view]
 
-interface = 'minimal'
+# interface = 'minimal'
 
 [timers]
 # Timer length in seconds

@@ -1,24 +1,15 @@
-use crate::config::{create_config, Config};
-use crate::input::TerminalInputThread;
-use crate::notification::dispatch_notification;
-use crate::terminal_event::TerminalEvent;
-use crate::view::TerminalRenderer;
+use crate::client::terminal_event::TerminalEvent;
+use crate::{client::notification::dispatch_notification, config::Config};
 use std::time::Duration;
 use zentime_rs_timer::{Timer, TimerAction};
 
-use std::sync::mpsc::{self, RecvTimeoutError};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 
-pub fn start_timer(config_path: &str) {
-    let config: Config = create_config(config_path)
-        .extract()
-        .expect("Could not create config");
-
-    let (terminal_input_sender, terminal_input_receiver) = mpsc::channel();
-    let (view_sender, view_receiver) = mpsc::channel();
-
-    TerminalInputThread::spawn(terminal_input_sender);
-    let render_thread_handle = TerminalRenderer::spawn(view_receiver, config.view);
-
+pub fn start(
+    config: Config,
+    view_sender: Sender<TerminalEvent>,
+    terminal_input_receiver: Receiver<TimerAction>,
+) {
     Timer::new(
         config.timers,
         Box::new(move |_, msg| {
@@ -50,6 +41,4 @@ pub fn start_timer(config_path: &str) {
     )
     .init()
     .expect("Could not initialize timer");
-
-    render_thread_handle.join().expect("Could not join threads");
 }
