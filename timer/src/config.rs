@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 /// Timer configuration which determines certain aspects of the timer,
 /// like the duration of `intervals` and break lengths.
-#[derive(Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub struct TimerConfig {
     /// Timer in seconds
     pub timer: u64,

@@ -4,12 +4,12 @@ use std::thread;
 use std::time::Duration;
 use zentime_rs_timer::config::TimerConfig;
 use zentime_rs_timer::timer::{Timer, ViewState};
-use zentime_rs_timer::TimerAction;
+use zentime_rs_timer::TimerInputAction;
 
 fn main() {
     let (terminal_input_sender, terminal_input_receiver): (
-        Sender<TimerAction>,
-        Receiver<TimerAction>,
+        Sender<TimerInputAction>,
+        Receiver<TimerInputAction>,
     ) = mpsc::channel();
     let (view_sender, view_receiver): (Sender<ViewState>, Receiver<ViewState>) = mpsc::channel();
 
@@ -22,27 +22,27 @@ fn main() {
             Box::new(move |state, msg| {
                 println!("{} {}", state.round, msg);
             }),
-            Box::new(move |view_state| -> Option<TimerAction> {
+            Box::new(move |view_state| -> Option<TimerInputAction> {
                 view_sender.send(view_state).unwrap();
 
                 let input = terminal_input_receiver.recv_timeout(Duration::from_secs(1));
 
                 match input {
                     Ok(action) => Some(action),
-                    Err(RecvTimeoutError::Disconnected) => Some(TimerAction::Quit),
+                    Err(RecvTimeoutError::Disconnected) => None, // Handle error in a real scenario
                     _ => None,
                 }
             }),
         );
 
-        if timer.init().is_err() {
-            // Do nothing
-        };
+        timer.init()
     });
 
     let action_jh = thread::spawn(move || {
         // Start the timer
-        terminal_input_sender.send(TimerAction::PlayPause).unwrap();
+        terminal_input_sender
+            .send(TimerInputAction::PlayPause)
+            .unwrap();
 
         // Render current timer state three seconds in a row
         for _ in 0..3 {
@@ -53,7 +53,9 @@ fn main() {
         }
 
         // Pause the timer
-        terminal_input_sender.send(TimerAction::PlayPause).unwrap();
+        terminal_input_sender
+            .send(TimerInputAction::PlayPause)
+            .unwrap();
         let state = view_receiver.recv().unwrap();
 
         // NOTE:
@@ -72,7 +74,9 @@ fn main() {
         thread::sleep(Duration::from_secs(1));
 
         // Start the timer again
-        terminal_input_sender.send(TimerAction::PlayPause).unwrap();
+        terminal_input_sender
+            .send(TimerInputAction::PlayPause)
+            .unwrap();
 
         // Render current timer state three seconds in a row
         for _ in 0..3 {
@@ -81,11 +85,6 @@ fn main() {
                 println!("{}", state.time)
             }
         }
-
-        // Terminate timer
-        terminal_input_sender
-            .send(TimerAction::Quit)
-            .expect("Could not send quit action");
     });
 
     action_jh.join().unwrap();

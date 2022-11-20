@@ -1,7 +1,10 @@
 //! Implementation of the actual timer logic
 
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
+
 use crate::config::TimerConfig;
-use crate::timer_action::TimerAction;
+use crate::timer_action::TimerInputAction;
 use crate::util::seconds_to_time;
 use std::time::{Duration, Instant};
 
@@ -9,10 +12,12 @@ use std::time::{Duration, Instant};
 // https://cliffle.com/blog/rust-typestate/
 
 // TODO
-// use thiserror crate
+// * use thiserror crate
+// * update doc strings!!!
+// * write tests
 
 /// Information that can be shared  with the [Timer::view_sender]
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ViewState {
     /// Denotes if the current timer is a break timer
     pub is_break: bool,
@@ -28,11 +33,13 @@ pub struct ViewState {
 pub trait TimerState {}
 
 /// State specific to a paused timer
+#[derive(Clone, Copy, Debug)]
 pub struct Paused {
     remaining_time: Duration,
 }
 
 /// State specific to a running timer
+#[derive(Clone, Copy, Debug)]
 pub struct Running {
     target_time: Instant,
 }
@@ -42,7 +49,7 @@ impl TimerState for Running {}
 
 /// State which is shared between timers when they transition from one timer state to the
 /// next. Some of its information is also being shared with the `view_sender`.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct TimerStateData {
     /// State that denotes if the current timer is a break timer.
     /// If set to `false` the current timer is a regular focus interval timer.
@@ -55,7 +62,7 @@ pub struct TimerStateData {
 
 // TODO return results on these (and use thiserror instead of anyhow)
 type OnTimerEnd = Box<dyn Fn(TimerStateData, &str)>;
-type OnTick = Box<dyn FnMut(ViewState) -> Option<TimerAction>>;
+type OnTick = Box<dyn FnMut(ViewState) -> Option<TimerInputAction>>;
 
 /// Timer which can either be in a paused state or a running state.
 /// To instantiate the timer run `Timer::new()`.
@@ -104,12 +111,24 @@ pub struct Timer<S: TimerState> {
     on_tick: OnTick,
 }
 
+impl<S: TimerState + std::fmt::Debug> Debug for Timer<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Timer")
+            .field("config", &self.config)
+            .field("on_interval_end", &"[closure] without context")
+            .field("shared_state", &self.shared_state)
+            .field("internal_state", &self.internal_state)
+            .field("on_tick", &"[closure] without context")
+            .finish()
+    }
+}
+
 impl<S: TimerState> Timer<S> {
     /// Transitions a timer from one timer to the next.
     /// The next timer will either be a break timer or a regular timer.
     /// Either way it will be initalized in a paused state.
     /// If [is_timer_end] is set to true, the [Timer::on_interval_end] will be called.
-    fn next(self, is_timer_end: bool) -> anyhow::Result<()> {
+    fn next(self, is_timer_end: bool) {
         let is_major_break = self.shared_state.round % self.config.intervals == 0;
         let shared_state = self.shared_state.clone();
 
@@ -126,7 +145,7 @@ impl<S: TimerState> Timer<S> {
             (new_timer.on_interval_end)(*shared_state, notification_string);
         }
 
-        new_timer.init()
+        new_timer.init();
     }
 
     /// Creates a new break timer whose length will either be that of a
@@ -191,7 +210,7 @@ impl Timer<Paused> {
 
     /// Puts the paused timer into a waiting state waiting for input (e.g. to unpause the timer
     /// and transition it into a running state).
-    pub fn init(mut self) -> anyhow::Result<()> {
+    pub fn init(mut self) {
         loop {
             let time = self.internal_state.remaining_time.as_secs();
 
@@ -201,27 +220,22 @@ impl Timer<Paused> {
                 time: seconds_to_time(time),
             }) {
                 match action {
-                    TimerAction::Quit => {
-                        return Ok(());
-                    }
-                    TimerAction::PlayPause => {
-                        self.unpause()?;
+                    TimerInputAction::PlayPause => {
+                        self.unpause();
                         break;
                     }
-                    TimerAction::Skip => {
+                    TimerInputAction::Skip => {
                         return self.next(false);
                     }
 
-                    TimerAction::None => {}
+                    TimerInputAction::None => {}
                 }
             }
         }
-
-        Ok(())
     }
 
     /// Transitions the paused timer into a running timer
-    fn unpause(self) -> anyhow::Result<()> {
+    fn unpause(self) {
         Timer {
             on_interval_end: self.on_interval_end,
             on_tick: self.on_tick,
@@ -238,7 +252,7 @@ impl Timer<Paused> {
 impl Timer<Running> {
     /// Transitions the running timer into a paused timer state and calls `init()` on_interval_end
     /// it, so that the new timer is ready to receive an [TimerAction]
-    fn pause(self) -> anyhow::Result<()> {
+    fn pause(self) {
         Timer {
             config: self.config,
             on_tick: self.on_tick,
@@ -248,13 +262,13 @@ impl Timer<Running> {
                 remaining_time: self.internal_state.target_time - Instant::now(),
             },
         }
-        .init()
+        .init();
     }
 
     /// Runs the timer and awaits input.
     /// Depending on the input [TimerAction] the timer might, Quit (and inform [Self::view_sender] about this),
     /// transition into a paused state or jump to the next interval.
-    fn start(mut self) -> anyhow::Result<()> {
+    fn start(mut self) {
         while self.internal_state.target_time > Instant::now() {
             let time = (self.internal_state.target_time - Instant::now()).as_secs();
 
@@ -264,16 +278,13 @@ impl Timer<Running> {
                 time: seconds_to_time(time),
             }) {
                 match action {
-                    TimerAction::Quit => {
-                        return Ok(());
-                    }
-                    TimerAction::PlayPause => {
+                    TimerInputAction::PlayPause => {
                         return self.pause();
                     }
-                    TimerAction::Skip => {
+                    TimerInputAction::Skip => {
                         return self.next(false);
                     }
-                    TimerAction::None => {}
+                    TimerInputAction::None => {}
                 }
             }
         }

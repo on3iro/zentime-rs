@@ -1,4 +1,8 @@
-#![warn(missing_docs)]
+#![warn(
+    missing_docs,
+    missing_copy_implementations,
+    missing_debug_implementations
+)]
 
 //! Zentime cli
 
@@ -8,6 +12,7 @@ use clap::{Parser, Subcommand};
 mod client;
 pub mod config;
 mod default_cmd;
+mod ipc;
 mod server;
 
 /// Starts the timer or attaches to an already running timer
@@ -27,13 +32,13 @@ struct Cli {
 enum Commands {}
 
 /// Runs the specified zentime cli command
-pub fn run_cli() {
+pub async fn run_cli() {
     let cli = Cli::parse();
 
     match &cli.command {
         // TODO
         Some(_commands) => {}
 
-        None => default_cmd(&cli.config),
+        None => default_cmd(&cli.config).await,
     }
 }

@@ -1,9 +1,7 @@
-use crate::client::terminal::DefaultTerminal;
-use crate::client::terminal_event::TerminalEvent;
 use anyhow::Context;
 use zentime_rs_timer::timer::ViewState;
 
-use std::{io::Stdout, sync::mpsc::Receiver, thread};
+use std::io::Stdout;
 use tui::{
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -12,9 +10,6 @@ use tui::{
     widgets::{Block, Borders, Paragraph, Tabs},
     Terminal as TuiTerminal,
 };
-
-use super::terminal::MinimalTerminal;
-use super::terminal::Terminal;
 
 /// Base layout of the program
 fn layout(rect: Rect) -> Vec<Rect> {
@@ -40,7 +35,7 @@ fn inner_layout(rect: Rect) -> Vec<Rect> {
 }
 
 fn key_binding_info() -> Tabs<'static> {
-    let keybindings = vec!["[Q]uit", "[S]kip", "Space: Play/Pause"];
+    let keybindings = vec!["[Q]uit", "[D]etach", "[S]kip", "Space: Play/Pause"];
     let keybinding_spans = keybindings
         .iter()
         .map(|key| {
@@ -110,21 +105,4 @@ pub fn timer_view(
         })
         .context("Could not render to terminal")?;
     Ok(())
-}
-
-pub struct TerminalRenderer {}
-
-impl TerminalRenderer {
-    pub fn spawn(
-        view_receiver: Receiver<TerminalEvent>,
-        interface_type: String,
-    ) -> thread::JoinHandle<()> {
-        thread::spawn(move || {
-            if interface_type == "minimal" {
-                MinimalTerminal::new().render(view_receiver);
-            } else {
-                DefaultTerminal::new().render(view_receiver);
-            }
-        })
-    }
 }

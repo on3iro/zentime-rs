@@ -1,31 +1,56 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use std::thread::JoinHandle;
-use std::{sync::mpsc::Sender, thread, time::Duration};
-use zentime_rs_timer::TimerAction;
+use crossterm::event::{EventStream, KeyCode, KeyEvent, KeyModifiers};
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::task::yield_now;
+use tokio::{spawn, task::JoinHandle};
+use tokio_stream::StreamExt;
 
-use crossterm::event::{self, Event};
+use crossterm::event::Event;
 
-pub enum InputEvent<I> {
-    Input(I),
+pub enum ClientInputAction {
+    /// Quit Timer and terminate server
+    Quit,
+
+    /// Detach current client without terminating server
+    Detach,
+
+    /// NoOp
+    None,
+
+    /// Either start or pause the current timer
+    PlayPause,
+
+    /// Skip to the next timer (break or focus)
+    Skip,
 }
 
-pub struct TerminalInputThread {}
+pub struct TerminalInputTask {}
 
-impl TerminalInputThread {
-    pub fn spawn(input_worker_tx: Sender<TimerAction>) -> JoinHandle<()> {
-        thread::spawn(move || loop {
-            if event::poll(Duration::from_millis(200)).expect("poll works") {
-                let crossterm_event = event::read().expect("can read events");
-                input_worker_tx
-                    .send(handle_input(InputEvent::Input(crossterm_event)))
-                    .expect("can send events");
+impl TerminalInputTask {
+    pub async fn spawn(input_worker_tx: UnboundedSender<ClientInputAction>) -> JoinHandle<()> {
+        spawn(async move {
+            let mut stream = EventStream::new();
+
+            loop {
+                let result = stream.next().await;
+                if let Some(Ok(event)) = result {
+                    if let Err(error) = input_worker_tx.send(handle_input(event)) {
+                        panic!("Could not send ClientInputAction: {}", error)
+                    };
+                }
+
+                yield_now().await;
             }
         })
     }
 }
 
-fn handle_input(event: InputEvent<Event>) -> TimerAction {
-    if let InputEvent::Input(Event::Key(key_event)) = event {
+// TODO
+// * map these to a new Enum InputAction
+// * Handle input action inside a dedicated i/o task
+// * the i/o task is then responsible to decide what to do with input actions (e.g. send a
+// ClientToServerMsg)
+fn handle_input(event: Event) -> ClientInputAction {
+    if let Event::Key(key_event) = event {
         match key_event {
             KeyEvent {
                 code: KeyCode::Char('q'),
@@ -36,26 +61,33 @@ fn handle_input(event: InputEvent<Event>) -> TimerAction {
                 modifiers: KeyModifiers::CONTROL,
                 ..
             } => {
-                return TimerAction::Quit;
+                return ClientInputAction::Quit;
+            }
+
+            KeyEvent {
+                code: KeyCode::Char('d'),
+                ..
+            } => {
+                return ClientInputAction::Detach;
             }
 
             KeyEvent {
                 code: KeyCode::Char(' '),
                 ..
             } => {
-                return TimerAction::PlayPause;
+                return ClientInputAction::PlayPause;
             }
 
             KeyEvent {
                 code: KeyCode::Char('s'),
                 ..
             } => {
-                return TimerAction::Skip;
+                return ClientInputAction::Skip;
             }
 
             _ => {}
         }
     }
 
-    TimerAction::None
+    ClientInputAction::None
 }

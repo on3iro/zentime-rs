@@ -1,4 +1,9 @@
-#![warn(missing_docs)]
+#![warn(
+    missing_docs,
+    missing_copy_implementations,
+    missing_debug_implementations
+)]
+
 //! Pomodoro/Productivity timer that can transition between various states ([Paused]/[Running]),
 //! tracks intervals and can be configured.
 //!
@@ -67,7 +72,7 @@
 //! ```
 
 pub use timer::Timer;
-pub use timer_action::TimerAction;
+pub use timer_action::TimerInputAction;
 
 pub mod config;
 pub mod timer;
