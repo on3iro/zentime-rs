@@ -16,6 +16,5 @@ fn main() {
             }),
         )
         .init()
-        .expect("Could not initialize timer");
     });
 }

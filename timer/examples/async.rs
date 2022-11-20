@@ -3,7 +3,7 @@ use std::time::Duration;
 use tokio::task;
 use zentime_rs_timer::config::TimerConfig;
 use zentime_rs_timer::timer::Timer;
-use zentime_rs_timer::TimerAction;
+use zentime_rs_timer::TimerInputAction;
 
 #[tokio::main]
 async fn main() {
@@ -20,7 +20,7 @@ async fn main() {
             Box::new(move |state, msg| {
                 println!("{} {}", state.round, msg);
             }),
-            Box::new(move |view_state| -> Option<TimerAction> {
+            Box::new(move |view_state| -> Option<TimerInputAction> {
                 view_sender.send(view_state).unwrap();
 
                 sleep(Duration::from_secs(1));
@@ -34,14 +34,14 @@ async fn main() {
             }),
         );
 
-        if timer.init().is_err() {
-            // Do nothing
-        };
+        timer.init()
     });
 
     task::spawn(async move {
         // Start the timer
-        terminal_input_sender.send(TimerAction::PlayPause).unwrap();
+        terminal_input_sender
+            .send(TimerInputAction::PlayPause)
+            .unwrap();
 
         // Render current timer state three seconds in a row
         for _ in 0..3 {
@@ -51,7 +51,9 @@ async fn main() {
         }
 
         // Pause the timer
-        terminal_input_sender.send(TimerAction::PlayPause).unwrap();
+        terminal_input_sender
+            .send(TimerInputAction::PlayPause)
+            .unwrap();
         let state = view_receiver.recv().await.unwrap();
 
         // NOTE:
@@ -69,7 +71,9 @@ async fn main() {
         tokio::time::sleep(Duration::from_secs(1)).await;
 
         // Start the timer again
-        terminal_input_sender.send(TimerAction::PlayPause).unwrap();
+        terminal_input_sender
+            .send(TimerInputAction::PlayPause)
+            .unwrap();
 
         // Render current timer state three seconds in a row
         for _ in 0..3 {
@@ -77,11 +81,6 @@ async fn main() {
             println!("{}", state.time);
             tokio::time::sleep(Duration::from_secs(1)).await;
         }
-
-        // Terminate timer
-        terminal_input_sender
-            .send(TimerAction::Quit)
-            .expect("Could not send quit action");
     })
     .await
     .unwrap();
