@@ -12,7 +12,6 @@ use std::time::{Duration, Instant};
 // https://cliffle.com/blog/rust-typestate/
 
 // TODO
-// * use thiserror crate
 // * update doc strings!!!
 // * write tests
 
@@ -60,7 +59,6 @@ pub struct TimerStateData {
     pub round: u64,
 }
 
-// TODO return results on these (and use thiserror instead of anyhow)
 type OnTimerEnd = Box<dyn Fn(TimerStateData, &str)>;
 type OnTick = Box<dyn FnMut(ViewState) -> Option<TimerInputAction>>;
 
@@ -97,7 +95,6 @@ pub struct Timer<S: TimerState> {
     /// Config describin how long intervals are etc.
     config: TimerConfig,
 
-    // TODO make this optional
     /// Callback closure which is called at the end of each timer
     on_interval_end: OnTimerEnd,
 

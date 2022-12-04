@@ -18,9 +18,6 @@ impl Terminal {
                 match out_rx.recv().await {
                     Some(TerminalEvent::View(state)) => {
                         if let Err(error) = terminal_out.lock().await.render(state) {
-                            // TODO we should probably only restore the terminal here and propagate
-                            // the error so that the actual process::exit happens inside our main
-                            // function
                             return terminal_out
                                 .lock()
                                 .await
