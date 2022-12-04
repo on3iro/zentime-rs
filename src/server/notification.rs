@@ -1,4 +1,4 @@
-use crate::client::sound::{play, SoundFile};
+use super::sound::{play, SoundFile};
 use crate::config::NotificationConfig;
 use notify_rust::{Notification, NotificationHandle};
 
