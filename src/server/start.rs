@@ -1,8 +1,9 @@
+use crate::config::Config;
 use crate::ipc::{
     get_socket_name, ClientToServerMsg, InterProcessCommunication, ServerToClientMsg,
 };
+use crate::server::notification::dispatch_notification;
 use crate::server::timer_output::TimerOutputAction;
-use crate::{client::notification::dispatch_notification, config::Config};
 use anyhow::Context;
 use crossbeam::channel::{unbounded, Sender};
 use tokio::task::yield_now;
