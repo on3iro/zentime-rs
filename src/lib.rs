@@ -8,12 +8,14 @@
 
 use crate::default_cmd::default_cmd;
 use clap::{Parser, Subcommand};
+use subcommands::server::{start, status, stop};
 
 mod client;
 pub mod config;
 mod default_cmd;
 mod ipc;
 mod server;
+mod subcommands;
 
 /// Starts the timer or attaches to an already running timer
 #[derive(Parser)]
@@ -29,15 +31,40 @@ struct Cli {
 
 /// Available cli sub commands
 #[derive(Subcommand)]
-enum Commands {}
+enum Commands {
+    /// Interact with the zentime server
+    Server {
+        #[command(subcommand)]
+        command: ServerCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum ServerCommands {
+    /// Start the zentime server
+    Start {
+        /// Sets a custom config file
+        #[arg(short, long, default_value = "~/.config/zentime/zentime.toml")]
+        config: String,
+    },
+
+    /// Stop the zentime server and close all client connections
+    Stop,
+
+    /// Check if the zentime server is currently running
+    Status,
+}
 
 /// Runs the specified zentime cli command
 pub async fn run_cli() {
     let cli = Cli::parse();
 
     match &cli.command {
-        // TODO
-        Some(_commands) => {}
+        Some(Commands::Server { command }) => match command {
+            ServerCommands::Start { config } => start(config).await,
+            ServerCommands::Stop => stop(),
+            ServerCommands::Status => status(),
+        },
 
         None => default_cmd(&cli.config).await,
     }

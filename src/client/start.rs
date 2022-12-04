@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-// TODO move input into terminal_io mod
-use crate::client::input::TerminalInputTask;
+use crate::client::terminal_io::input::TerminalInputTask;
 use crate::client::terminal_io::output::TerminalOut;
 use crate::client::terminal_io::terminal::Terminal;
 use crate::config::Config;
@@ -20,7 +19,30 @@ pub async fn start(config: Config) {
 
     let interface_type = config.view.interface.clone();
 
-    let terminal_out: Box<dyn TerminalOut + Send> = if interface_type == "minimal" {
+    let terminal_out: Box<dyn TerminalOut + Send> = init_interface(interface_type);
+
+    let thread_safe_terminal_out = Arc::new(Mutex::new(terminal_out));
+
+    let input_handler = TerminalInputTask::spawn(terminal_in_tx);
+    let view_handler = Terminal::spawn_renderer(thread_safe_terminal_out.clone(), terminal_out_rx);
+    let connection_handler = ClientConnectionTask::spawn(terminal_in_rx, terminal_out_tx);
+
+    let join_result = try_join! {
+        connection_handler.flatten(),
+        input_handler.flatten(),
+        view_handler.flatten(),
+    };
+
+    if let Err(error) = join_result {
+        thread_safe_terminal_out
+            .lock()
+            .await
+            .quit(Some(&format!("ERROR: {}", error)), true)
+    }
+}
+
+fn init_interface(interface_type: String) -> Box<dyn TerminalOut + Send> {
+    if interface_type == "minimal" {
         // TODO maybe try to avoid duplication between both interface types
         match MinimalInterface::new() {
             Ok(interface) => Box::new(interface),
@@ -35,25 +57,5 @@ pub async fn start(config: Config) {
                 panic!("Could not initialize interface: {}", error);
             }
         }
-    };
-
-    let thread_safe_terminal_out = Arc::new(Mutex::new(terminal_out));
-
-    let input_handler = TerminalInputTask::spawn(terminal_in_tx);
-    let view_handler = Terminal::spawn_renderer(thread_safe_terminal_out.clone(), terminal_out_rx);
-    let connection_handler = ClientConnectionTask::spawn(terminal_in_rx, terminal_out_tx);
-
-    let join_result = try_join! {
-        connection_handler.flatten(),
-        input_handler.flatten(),
-        view_handler.flatten(),
-    };
-
-    match join_result {
-        Ok(_) => todo!(),
-        Err(error) => thread_safe_terminal_out
-            .lock()
-            .await
-            .quit(Some(&format!("ERROR: {}", error)), true),
     }
 }

@@ -44,11 +44,6 @@ impl TerminalInputTask {
     }
 }
 
-// TODO
-// * map these to a new Enum InputAction
-// * Handle input action inside a dedicated i/o task
-// * the i/o task is then responsible to decide what to do with input actions (e.g. send a
-// ClientToServerMsg)
 fn handle_input(event: Event) -> ClientInputAction {
     if let Event::Key(key_event) = event {
         match key_event {

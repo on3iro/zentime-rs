@@ -18,6 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 zentime-rs-timer = { path = "./timer", version = "0.8" }
+daemonize = { version = "0.4" }
 interprocess = { version = "1.2", features = ["tokio_support", "signals"]}
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
