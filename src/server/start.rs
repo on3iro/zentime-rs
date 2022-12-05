@@ -6,15 +6,12 @@ use crate::server::notification::dispatch_notification;
 use crate::server::timer_output::TimerOutputAction;
 use anyhow::Context;
 use crossbeam::channel::{unbounded, Sender};
-use daemonize::Daemonize;
 use interprocess::local_socket::tokio::OwnedWriteHalf;
-use std::fs::File;
 use std::process;
 use sysinfo::ProcessExt;
-use tokio::task::yield_now;
+use tokio::task::{spawn_blocking, yield_now};
 
 use std::sync::Arc;
-use std::thread::{self, JoinHandle};
 use sysinfo::{System, SystemExt};
 use tokio::select;
 use tokio::sync::{self, broadcast::Receiver as BroadcastReceiver};
@@ -30,7 +27,8 @@ use zentime_rs_timer::{Timer, TimerInputAction};
 // TODO
 // add logging
 
-pub async fn start(config: Config) -> anyhow::Result<Option<JoinHandle<()>>> {
+#[tokio::main]
+pub async fn start(config: Config) -> anyhow::Result<()> {
     let socket_name = get_socket_name();
 
     // TODO
@@ -42,7 +40,7 @@ pub async fn start(config: Config) -> anyhow::Result<Option<JoinHandle<()>>> {
     let zentime_process_instances = system.processes_by_name("zentime");
 
     // WHY:
-    // We identify a server process by its comman (e.g. "zentime server start").
+    // We identify a server process by its command (e.g. "zentime server start").
     // This process itself will be one instance, so if we have two instances there is already
     // another server process running and we don't have to start this one and can exit early.
     let server_is_already_running = zentime_process_instances
@@ -52,7 +50,7 @@ pub async fn start(config: Config) -> anyhow::Result<Option<JoinHandle<()>>> {
 
     if socket_file_already_exists && server_is_already_running {
         // Apparently a server is already running and we don't need to do anything
-        return Ok(None);
+        return Ok(());
     }
 
     if socket_file_already_exists {
@@ -63,25 +61,13 @@ pub async fn start(config: Config) -> anyhow::Result<Option<JoinHandle<()>>> {
             .context("Could not remove existing socket file")?
     };
 
-    Ok(Some(thread::spawn(move || {
-        let stdout = File::create("/tmp/zentime.d.out").unwrap();
-        let stderr = File::create("/tmp/zentime.d.err").unwrap();
+    if let Err(error) = listen(config, socket_name).await {
+        panic!("Could not start server listener: {}", error);
+    };
 
-        let daemonize = Daemonize::new()
-            .stdout(stdout) // Redirect stdout to `/tmp/daemon.out`.
-            .stderr(stderr); // Redirect stderr to `/tmp/daemon.err`.
-
-        if let Err(error) = daemonize.start() {
-            panic!("Could not daemonize server process: {}", error);
-        };
-
-        if let Err(error) = listen(config, socket_name) {
-            panic!("Could not start server listener: {}", error);
-        };
-    })))
+    Ok(())
 }
 
-#[tokio::main]
 async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
     let listener =
         LocalSocketListener::bind(socket_name).context("Could not bind to local socket")?;
@@ -99,8 +85,7 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
         sync::broadcast::channel(24);
     let connection_synchronization_sender = Arc::new(connection_synchronization_sender.clone());
 
-    // Timer running on its own thread so that it does not block our async runtime
-    thread::spawn(move || {
+    spawn_blocking(move || {
         Timer::new(
             config.timers,
             Box::new(move |_, msg| {
@@ -181,7 +166,11 @@ async fn handle_conn(
             },
             msg = InterProcessCommunication::recv_ipc_message::<ClientToServerMsg>(&mut reader) => {
                 let msg = msg.context("Could not receive message from socket")?;
-                handle_client_to_server_msg(msg, &connection_sync_tx, &timer_input_sender).await.context("Could not handle client to server message")?;
+                if let CloseConnection::Yes = handle_client_to_server_msg(msg, &connection_sync_tx, &timer_input_sender)
+                    .await
+                    .context("Could not handle client to server message")? {
+                        break;
+                    };
             },
             value = timer_output_receiver.recv() => {
                 let action = value.context("Could not receive output from timer")?;
@@ -191,6 +180,8 @@ async fn handle_conn(
 
         yield_now().await;
     }
+
+    Ok(())
 }
 
 async fn handle_connection_synchronization(
@@ -208,13 +199,18 @@ async fn handle_connection_synchronization(
     }
 }
 
+enum CloseConnection {
+    Yes,
+    No,
+}
+
 async fn handle_client_to_server_msg(
     msg: ClientToServerMsg,
     connection_sync_tx: &std::sync::Arc<
         tokio::sync::broadcast::Sender<ConnectionSynchronizationAction>,
     >,
     timer_input_sender: &Sender<TimerInputAction>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<CloseConnection> {
     match msg {
         ClientToServerMsg::Quit => {
             // TODO handle error
@@ -232,9 +228,12 @@ async fn handle_client_to_server_msg(
                 .send(TimerInputAction::Skip)
                 .context("Could not send Skip to timer")?;
         }
+        ClientToServerMsg::Detach => {
+            return Ok(CloseConnection::Yes);
+        }
     }
 
-    Ok(())
+    Ok(CloseConnection::No)
 }
 
 async fn handle_timer_output_action(

@@ -13,13 +13,20 @@ pub fn dispatch_notification(
     if config.show_notification {
         send(notification_string)?;
     }
+
     Ok(())
 }
 
 fn send(message: &str) -> anyhow::Result<NotificationHandle> {
-    let handle = Notification::new()
+    match Notification::new()
         .summary("\u{25EF} zentime")
         .body(message)
-        .show()?;
-    Ok(handle)
+        .show()
+    {
+        Ok(handle) => Ok(handle),
+        Err(error) => {
+            println!("Error on notification: {:?}", error);
+            panic!("Error: {:?}", error);
+        }
+    }
 }

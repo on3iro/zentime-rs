@@ -56,16 +56,16 @@ enum ServerCommands {
 }
 
 /// Runs the specified zentime cli command
-pub async fn run_cli() {
+pub fn run_cli() {
     let cli = Cli::parse();
 
     match &cli.command {
         Some(Commands::Server { command }) => match command {
-            ServerCommands::Start { config } => start(config).await,
+            ServerCommands::Start { config } => start(config),
             ServerCommands::Stop => stop(),
             ServerCommands::Status => status(),
         },
 
-        None => default_cmd(&cli.config).await,
+        None => default_cmd(&cli.config),
     }
 }
