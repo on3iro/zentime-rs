@@ -112,7 +112,7 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
                 timer_out_tx.send(TimerOutputAction::Timer(view_state)).ok();
 
                 // Handle app actions and hand them to the timer caller
-                match timer_input_receiver.recv_timeout(Duration::from_secs(1)) {
+                match timer_input_receiver.recv_timeout(Duration::from_millis(100)) {
                     Ok(action) => Some(action),
                     _ => Some(TimerInputAction::None),
                 }
