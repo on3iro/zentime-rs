@@ -30,6 +30,7 @@ pub enum ServerToClientMsg {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientToServerMsg {
     Quit,
+    Detach,
     PlayPause,
     Skip,
 }

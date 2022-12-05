@@ -1,9 +1,11 @@
+use std::env::current_dir;
 use std::process;
 use sysinfo::Pid;
 
 use sysinfo::ProcessExt;
 use sysinfo::System;
 use sysinfo::SystemExt;
+use tokio::fs::canonicalize;
 use tokio::process::Command;
 
 use crate::config::{create_config, Config};
@@ -22,6 +24,7 @@ use crate::client;
 // * [ ] add command to kill server without attaching a client beforehand
 // * [ ] handle termination signal gracefully so that we always disable raw mode on termination etc.
 
+#[tokio::main]
 pub async fn default_cmd(config_path: &str) {
     let config: Config = create_config(config_path)
         .extract()
@@ -48,10 +51,19 @@ pub async fn default_cmd(config_path: &str) {
             .process(Pid::from(process::id() as i32))
             .expect("Could not retrieve information for current zentime process");
 
+        let current_dir = current_dir()
+            .expect("Could not get current directory")
+            .into_os_string();
+
         if let Err(error) = Command::new(current_process.exe())
             .arg("server")
             .arg("start")
-            .arg(format!("-c {}", &config_path))
+            // NOTE: it's important that the '{' starts
+            // immediately after the -c flag, because otherwise the config path would have
+            // additional whitespace. (We trim() the path inside [config::create_config()], but
+            // still...)
+            .arg(format!("-c{}", &config_path))
+            .current_dir(current_dir)
             .spawn()
             .expect("Could not start server daemon")
             .wait()

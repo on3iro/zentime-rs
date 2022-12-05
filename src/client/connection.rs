@@ -93,6 +93,11 @@ async fn handle_client_input_action(
                 .context("Could not send IPC message")?;
         }
         ClientInputAction::Detach => {
+            let msg = ClientToServerMsg::Detach;
+            InterProcessCommunication::send_ipc_message(msg, writer)
+                .await
+                .context("Could not send IPC message")?;
+
             // Shutdown current client, but keep server running
             terminal_out_tx
                 .send(TerminalEvent::Quit)
