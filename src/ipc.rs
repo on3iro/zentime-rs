@@ -1,3 +1,5 @@
+//! Utilities to handle zentime inter-process-communication
+
 use anyhow::{bail, Context};
 use futures::io::BufReader;
 use futures::{AsyncReadExt, AsyncWriteExt};
@@ -10,6 +12,7 @@ use zentime_rs_timer::timer::ViewState;
 const DEFAULT_SOCKET_PATH: &str = "/tmp/zentime.sock";
 const DEFAULT_SOCKET_NAMESPACE: &str = "@zentime.sock";
 
+/// Get zentime socket name over which server and clients may connect
 pub fn get_socket_name() -> &'static str {
     // This scoping trick allows us to nicely contain the import inside the `match`, so that if
     // any imports of variants named `Both` happen down the line, they won't collide with the
@@ -21,22 +24,37 @@ pub fn get_socket_name() -> &'static str {
     }
 }
 
+/// A message from the zentime server to the client
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerToClientMsg {
+    /// Aggregated state of the timer which a client can display
     Timer(ViewState),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// A message from a client to the zentime server
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum ClientToServerMsg {
+    /// Command the server to shutdown and close all connections
     Quit,
+
+    /// Detach from the server
     Detach,
+
+    /// Command the server to Play/Pause the timer
     PlayPause,
+
+    /// Command the server to skip to the next interval
     Skip,
 }
 
+/// Service handling communication between processes over the zentime socket.
+/// Multiple clients may exist alongside a single (usually daemonized) zentime server instance.
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct InterProcessCommunication {}
 
 impl InterProcessCommunication {
+    /// Writes a message to the zentime socket.
+    /// The message is encoded via [rmp_serde::encode] which uses [Messagepack](https://msgpack.org/) to encode type information.
     pub async fn send_ipc_message<M>(msg: M, writer: &mut OwnedWriteHalf) -> anyhow::Result<()>
     where
         M: Serialize + for<'a> Deserialize<'a> + Debug,
@@ -62,6 +80,8 @@ impl InterProcessCommunication {
         Ok(())
     }
 
+    /// Writes a message to the zentime socket.
+    /// The message is decoded via [rmp_serde::decode] which uses [Messagepack](https://msgpack.org/) to decode type information.
     pub async fn recv_ipc_message<M>(reader: &mut BufReader<OwnedReadHalf>) -> anyhow::Result<M>
     where
         M: Serialize + for<'a> Deserialize<'a> + Debug,

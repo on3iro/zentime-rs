@@ -1,27 +1,14 @@
 use std::env::current_dir;
 use std::process;
 use sysinfo::Pid;
+use zentime_rs::client::start;
+use zentime_rs::config::create_config;
+use zentime_rs::config::Config;
 
 use sysinfo::ProcessExt;
 use sysinfo::System;
 use sysinfo::SystemExt;
 use tokio::process::Command;
-
-use crate::config::{create_config, Config};
-
-use crate::client;
-
-// TODO
-// * [x] differentiate between server start and attach
-// * [x] use IPC between client and server
-// * [x] better error handling  (replace unwraps, use results etc.)
-// * [ ] docs
-// * [ ] refactor and simplify
-// * [ ] tests
-// * [x] check what happens if too many client connections are opened
-// * [ ] add status command (to check if daemon is currently running)
-// * [ ] add command to kill server without attaching a client beforehand
-// * [ ] handle termination signal gracefully so that we always disable raw mode on termination etc.
 
 #[tokio::main]
 pub async fn default_cmd(config_path: &str) {
@@ -72,5 +59,5 @@ pub async fn default_cmd(config_path: &str) {
         };
     }
 
-    client::start(config).await;
+    start(config).await;
 }

@@ -1,22 +1,29 @@
+//! Code related to server status information
 use std::fmt::Display;
 
 use sysinfo::{ProcessExt, System, SystemExt};
 
+/// Current status of the zentime server
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ServerStatus {
+    /// The server is active and running
     Running,
+
+    /// No server process is currently running
     Stopped,
 }
 
 impl Display for ServerStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ServerStatus::Running => write!(f, "Running"),
-            ServerStatus::Stopped => write!(f, "Stopped"),
+            ServerStatus::Running => write!(f, "running"),
+            ServerStatus::Stopped => write!(f, "not running"),
         }
     }
 }
 
+/// Gets the current status of the zentime server, by checking if a process is running
+/// which was started by a `zentime server`-command.
 pub fn server_status() -> ServerStatus {
     // TODO
     // * add a way to connect to a different server during development (e.g. by specifying the

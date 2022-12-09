@@ -1,7 +1,12 @@
+//! OS-Notification and sound playback related functions.
+
 use super::sound::{play, SoundFile};
 use crate::config::NotificationConfig;
+use anyhow::bail;
+use log::error;
 use notify_rust::{Notification, NotificationHandle};
 
+/// Play a sound file and send an OS-notification.
 pub fn dispatch_notification(
     config: NotificationConfig,
     notification_string: &str,
@@ -17,6 +22,7 @@ pub fn dispatch_notification(
     Ok(())
 }
 
+/// Send a OS-notificaion
 fn send(message: &str) -> anyhow::Result<NotificationHandle> {
     match Notification::new()
         .summary("\u{25EF} zentime")
@@ -25,8 +31,11 @@ fn send(message: &str) -> anyhow::Result<NotificationHandle> {
     {
         Ok(handle) => Ok(handle),
         Err(error) => {
-            println!("Error on notification: {:?}", error);
-            panic!("Error: {:?}", error);
+            // Currently show() will always return ok() (as per the definition of)
+            // notify_rust. However if they API changes one day an we are indeed able to receive
+            // errors, we wan't it to be logged in some way.
+            error!("Error on notification: {:?}", error);
+            bail!(error)
         }
     }
 }
