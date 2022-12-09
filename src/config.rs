@@ -1,5 +1,6 @@
+//! Code related to the runtime configuration of zentime
+
 use serde::{Deserialize, Serialize};
-use std::env::current_dir;
 use std::path::PathBuf;
 use zentime_rs_timer::config::TimerConfig;
 
@@ -8,7 +9,9 @@ use figment::{
     Figment,
 };
 
-#[derive(Deserialize, Serialize, Clone, Copy)]
+/// Configuration of notifications which are being send to the OS after each
+/// interval/break
+#[derive(Deserialize, Serialize, Clone, Copy, Debug)]
 pub struct NotificationConfig {
     /// Enable/Disable bell
     pub enable_bell: bool,
@@ -30,18 +33,31 @@ impl Default for NotificationConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone, Default)]
+/// Configuration of the interface
+#[derive(Deserialize, Serialize, Clone, Default, Debug)]
 pub struct ViewConfig {
+    /// Type of terminal interface
+    /// Can be one of:
+    /// * 'default'
+    /// * 'minimal'
     pub interface: String,
 }
 
-#[derive(Deserialize, Serialize, Clone, Default)]
+/// Zentime configuration
+#[derive(Deserialize, Serialize, Clone, Default, Debug)]
 pub struct Config {
+    /// Interface configuration
     pub view: ViewConfig,
+
+    /// Configuration of the timer itself
     pub timers: TimerConfig,
+
+    /// Configuration for OS notifications
     pub notifications: NotificationConfig,
 }
 
+/// Creates a configuration [Figment] by trying to open a configuration file
+/// from a given path and merging its configuration with the zentime default configuration.
 pub fn create_config(config_path: &str) -> Figment {
     let mut path_buffer = PathBuf::new();
     path_buffer.push(shellexpand::tilde(config_path.trim()).as_ref());

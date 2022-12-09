@@ -37,7 +37,7 @@ pub async fn start(config: Config) {
         thread_safe_terminal_out
             .lock()
             .await
-            .quit(Some(&format!("ERROR: {}", error)), true)
+            .quit(Some(format!("ERROR: {}", error)), true)
     }
 }
 

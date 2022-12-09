@@ -45,9 +45,15 @@ impl ClientConnectionTask {
         };
 
         tokio::spawn(async move {
-            if let Err(error) = handle_connection(connection, terminal_out_tx, terminal_in_rx).await
+            if let Err(error) =
+                handle_connection(connection, terminal_out_tx.clone(), terminal_in_rx).await
             {
-                panic!("Could not handle client connection: {}", error);
+                terminal_out_tx
+                    .send(TerminalEvent::Quit {
+                        msg: Some(format!("{}.\nServer connection closed.", error)),
+                        error: true,
+                    })
+                    .expect("Could not send to terminal out");
             }
         })
     }
@@ -91,6 +97,14 @@ async fn handle_client_input_action(
             InterProcessCommunication::send_ipc_message(msg, writer)
                 .await
                 .context("Could not send IPC message")?;
+
+            // Shutdown current client
+            terminal_out_tx
+                .send(TerminalEvent::Quit {
+                    msg: Some(String::from("Cya!")),
+                    error: false,
+                })
+                .context("Could not send to terminal out")?;
         }
         ClientInputAction::Detach => {
             let msg = ClientToServerMsg::Detach;
@@ -100,7 +114,10 @@ async fn handle_client_input_action(
 
             // Shutdown current client, but keep server running
             terminal_out_tx
-                .send(TerminalEvent::Quit)
+                .send(TerminalEvent::Quit {
+                    msg: None,
+                    error: false,
+                })
                 .context("Could not send to terminal out")?;
         }
         ClientInputAction::None => return Ok(()),
@@ -129,11 +146,6 @@ fn handle_server_to_client_msg(
         ServerToClientMsg::Timer(state) => {
             terminal_out_tx
                 .send(TerminalEvent::View(state))
-                .context("Could not send to terminal out")?;
-        }
-        ServerToClientMsg::Quit => {
-            terminal_out_tx
-                .send(TerminalEvent::Quit)
                 .context("Could not send to terminal out")?;
         }
     }

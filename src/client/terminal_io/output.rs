@@ -11,7 +11,7 @@ use zentime_rs_timer::timer::ViewState;
 
 pub trait TerminalOut {
     fn render(&mut self, state: ViewState) -> anyhow::Result<()>;
-    fn quit(&mut self, msg: Option<&str>, is_error: bool);
+    fn quit(&mut self, msg: Option<String>, is_error: bool);
 }
 
 pub struct DefaultInterface {
@@ -40,7 +40,7 @@ impl TerminalOut for DefaultInterface {
         timer_view(&mut self.tui_terminal, state)
     }
 
-    fn quit(&mut self, msg: Option<&str>, is_error: bool) {
+    fn quit(&mut self, msg: Option<String>, is_error: bool) {
         disable_raw_mode().expect("Could not disable raw mode");
         self.tui_terminal
             .show_cursor()
@@ -49,7 +49,7 @@ impl TerminalOut for DefaultInterface {
         execute!(std::io::stdout(), DisableMouseCapture, LeaveAlternateScreen)
             .expect("Could not execute crossterm macros");
 
-        println!("\n{}", msg.unwrap_or(""));
+        println!("\n{}", msg.unwrap_or_else(|| String::from("")));
 
         process::exit(i32::from(is_error))
     }
@@ -80,12 +80,12 @@ impl TerminalOut for MinimalInterface {
         Ok(std::io::stdout().flush()?)
     }
 
-    fn quit(&mut self, msg: Option<&str>, is_error: bool) {
+    fn quit(&mut self, msg: Option<String>, is_error: bool) {
         disable_raw_mode().expect("Could not disable raw mode");
         execute!(std::io::stdout(), Show, DisableMouseCapture)
             .expect("Could not execute crossterm macros");
 
-        println!("\r\n{}", msg.unwrap_or(""));
+        println!("\r\n{}", msg.unwrap_or_else(|| String::from("")));
 
         process::exit(i32::from(is_error))
     }
