@@ -8,11 +8,9 @@ use anyhow::Context;
 use crossbeam::channel::{unbounded, Sender};
 use interprocess::local_socket::tokio::OwnedWriteHalf;
 use std::process;
-use sysinfo::ProcessExt;
 use tokio::task::{spawn_blocking, yield_now};
 
 use std::sync::Arc;
-use sysinfo::{System, SystemExt};
 use tokio::select;
 use tokio::sync::{self, broadcast::Receiver as BroadcastReceiver};
 
@@ -24,6 +22,8 @@ use tokio::fs::{metadata, remove_file};
 
 use zentime_rs_timer::{Timer, TimerInputAction};
 
+use super::util::{server_status, ServerStatus};
+
 // TODO
 // add logging
 
@@ -31,24 +31,9 @@ use zentime_rs_timer::{Timer, TimerInputAction};
 pub async fn start(config: Config) -> anyhow::Result<()> {
     let socket_name = get_socket_name();
 
-    // TODO
-    // * add a way to connect to a different server during development (e.g. by specifying the
-    // socket address - or making use of the executable path)
-    let system = System::new_all();
-
     let socket_file_already_exists = metadata(socket_name).await.is_ok();
-    let zentime_process_instances = system.processes_by_name("zentime");
 
-    // WHY:
-    // We identify a server process by its command (e.g. "zentime server start").
-    // This process itself will be one instance, so if we have two instances there is already
-    // another server process running and we don't have to start this one and can exit early.
-    let server_is_already_running = zentime_process_instances
-        .filter(|p| p.cmd().contains(&String::from("server")))
-        .count()
-        == 2;
-
-    if socket_file_already_exists && server_is_already_running {
+    if socket_file_already_exists && server_status() == ServerStatus::Running {
         // Apparently a server is already running and we don't need to do anything
         return Ok(());
     }
