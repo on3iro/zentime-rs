@@ -1,6 +1,7 @@
 use crate::config::create_config;
 use crate::config::Config;
 use crate::server;
+use crate::server::util::server_status;
 use daemonize::Daemonize;
 use std::env::current_dir;
 use std::fs::File;
@@ -38,5 +39,5 @@ pub fn stop() {
 }
 
 pub fn status() {
-    todo!();
+    println!("Server is {}", server_status());
 }
