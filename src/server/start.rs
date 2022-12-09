@@ -7,7 +7,6 @@ use crate::server::timer_output::TimerOutputAction;
 use anyhow::Context;
 use crossbeam::channel::{unbounded, Sender};
 use interprocess::local_socket::tokio::OwnedWriteHalf;
-use std::process;
 use tokio::task::{spawn_blocking, yield_now};
 
 use std::sync::Arc;
@@ -66,10 +65,6 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
     // to continuously subscribe to it on incoming client connections
     let timer_out_tx = timer_output_sender.clone();
 
-    let (connection_synchronization_sender, _connection_synchronization_receiver) =
-        sync::broadcast::channel(24);
-    let connection_synchronization_sender = Arc::new(connection_synchronization_sender.clone());
-
     spawn_blocking(move || {
         Timer::new(
             config.timers,
@@ -100,31 +95,16 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
 
         let input_tx = timer_input_sender.clone();
         let output_rx = timer_output_sender.subscribe();
-        let connection_sync_tx = connection_synchronization_sender.clone();
-        let connection_sync_rx = connection_synchronization_sender.subscribe();
 
         // Spawn new parallel asynchronous tasks onto the Tokio runtime
         // and hand the connection over to them so that multiple clients
         // could be processed simultaneously in a lightweight fashion.
         tokio::spawn(async move {
-            if let Err(error) = handle_conn(
-                connection,
-                input_tx,
-                output_rx,
-                connection_sync_tx,
-                connection_sync_rx,
-            )
-            .await
-            {
+            if let Err(error) = handle_conn(connection, input_tx, output_rx).await {
                 panic!("Could not handle connection: {}", error);
             };
         });
     }
-}
-
-#[derive(Clone)]
-enum ConnectionSynchronizationAction {
-    Quit,
 }
 
 // Describe the things we do when we've got a connection ready.
@@ -132,10 +112,6 @@ async fn handle_conn(
     conn: LocalSocketStream,
     timer_input_sender: Sender<TimerInputAction>,
     mut timer_output_receiver: BroadcastReceiver<TimerOutputAction>,
-    connection_sync_tx: std::sync::Arc<
-        tokio::sync::broadcast::Sender<ConnectionSynchronizationAction>,
-    >,
-    mut connection_sync_rx: BroadcastReceiver<ConnectionSynchronizationAction>,
 ) -> anyhow::Result<()> {
     // Split the connection into two halves to process
     // received and sent data concurrently.
@@ -144,14 +120,9 @@ async fn handle_conn(
 
     loop {
         select! {
-            // Actions which are received by all connections to act upon
-            value = connection_sync_rx.recv() => {
-                let action = value.context("Could not receive synchronization action")?;
-                handle_connection_synchronization(action, &mut writer).await.context("Could not handle connection synchronization action")?;
-            },
             msg = InterProcessCommunication::recv_ipc_message::<ClientToServerMsg>(&mut reader) => {
                 let msg = msg.context("Could not receive message from socket")?;
-                if let CloseConnection::Yes = handle_client_to_server_msg(msg, &connection_sync_tx, &timer_input_sender)
+                if let CloseConnection::Yes = handle_client_to_server_msg(msg, &timer_input_sender)
                     .await
                     .context("Could not handle client to server message")? {
                         break;
@@ -169,21 +140,6 @@ async fn handle_conn(
     Ok(())
 }
 
-async fn handle_connection_synchronization(
-    action: ConnectionSynchronizationAction,
-    writer: &mut OwnedWriteHalf,
-) -> anyhow::Result<()> {
-    match action {
-        ConnectionSynchronizationAction::Quit => {
-            let msg = ServerToClientMsg::Quit;
-            InterProcessCommunication::send_ipc_message(msg, writer)
-                .await
-                .context("Could not send IPC message from server to client")?;
-            process::exit(0);
-        }
-    }
-}
-
 enum CloseConnection {
     Yes,
     No,
@@ -191,17 +147,13 @@ enum CloseConnection {
 
 async fn handle_client_to_server_msg(
     msg: ClientToServerMsg,
-    connection_sync_tx: &std::sync::Arc<
-        tokio::sync::broadcast::Sender<ConnectionSynchronizationAction>,
-    >,
     timer_input_sender: &Sender<TimerInputAction>,
 ) -> anyhow::Result<CloseConnection> {
     match msg {
         ClientToServerMsg::Quit => {
-            // TODO handle error
-            connection_sync_tx
-                .send(ConnectionSynchronizationAction::Quit)
-                .ok();
+            println!("\nClient told server to shutdown");
+            println!("Shutting down...");
+            std::process::exit(0);
         }
         ClientToServerMsg::PlayPause => {
             timer_input_sender

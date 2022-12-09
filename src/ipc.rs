@@ -24,7 +24,6 @@ pub fn get_socket_name() -> &'static str {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerToClientMsg {
     Timer(ViewState),
-    Quit,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

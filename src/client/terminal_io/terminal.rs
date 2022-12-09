@@ -21,11 +21,11 @@ impl Terminal {
                             return terminal_out
                                 .lock()
                                 .await
-                                .quit(Some(&format!("ERROR: {}", error)), true);
+                                .quit(Some(format!("ERROR: {}", error)), true);
                         }
                     }
-                    Some(TerminalEvent::Quit) => {
-                        return terminal_out.lock().await.quit(Some("Cya!"), false);
+                    Some(TerminalEvent::Quit { msg, error }) => {
+                        return terminal_out.lock().await.quit(msg, error);
                     }
                     None => continue,
                 }

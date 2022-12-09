@@ -5,7 +5,6 @@ use sysinfo::Pid;
 use sysinfo::ProcessExt;
 use sysinfo::System;
 use sysinfo::SystemExt;
-use tokio::fs::canonicalize;
 use tokio::process::Command;
 
 use crate::config::{create_config, Config};

@@ -8,5 +8,5 @@ pub enum TerminalEvent {
 
     /// The timer received an [AppAction::Quit] and forwards
     /// this information to the view
-    Quit,
+    Quit { msg: Option<String>, error: bool },
 }
