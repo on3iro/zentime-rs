@@ -17,6 +17,7 @@ use tokio::{select, task::yield_now};
 
 use super::terminal_io::terminal_event::TerminalEvent;
 
+/// Tokio task handling the connection between the client and the zentime server
 pub struct ClientConnectionTask {}
 
 impl ClientConnectionTask {
@@ -28,11 +29,17 @@ impl ClientConnectionTask {
 
         let mut connection_tries = 0;
 
+        // Try to receive a connection to the server (will timeout after the third attempt)
         let connection = loop {
             connection_tries += 1;
 
             if connection_tries == 4 {
-                panic!("Could not connect to server");
+                terminal_out_tx
+                    .send(TerminalEvent::Quit {
+                        msg: Some(String::from("\nCould not connect to server")),
+                        error: true,
+                    })
+                    .expect("Could not send to terminal out");
             }
 
             let result = LocalSocketStream::connect(socket_name).await;
@@ -59,6 +66,8 @@ impl ClientConnectionTask {
     }
 }
 
+/// Continously handle the connection to the server by reacting to incoming
+/// [ServerToClientMsg] and terminal input events.
 async fn handle_connection(
     connection: LocalSocketStream,
     terminal_out_tx: UnboundedSender<TerminalEvent>,
@@ -86,12 +95,14 @@ async fn handle_connection(
     }
 }
 
+/// Handle incoming [ClientInputAction]s
 async fn handle_client_input_action(
     action: ClientInputAction,
     terminal_out_tx: &UnboundedSender<TerminalEvent>,
     writer: &mut OwnedWriteHalf,
 ) -> anyhow::Result<()> {
     match action {
+        // Command server to shutdown and quit the current client
         ClientInputAction::Quit => {
             let msg = ClientToServerMsg::Quit;
             InterProcessCommunication::send_ipc_message(msg, writer)
@@ -106,6 +117,8 @@ async fn handle_client_input_action(
                 })
                 .context("Could not send to terminal out")?;
         }
+
+        // Quit the current client (but keep the server running)
         ClientInputAction::Detach => {
             let msg = ClientToServerMsg::Detach;
             InterProcessCommunication::send_ipc_message(msg, writer)
@@ -120,13 +133,19 @@ async fn handle_client_input_action(
                 })
                 .context("Could not send to terminal out")?;
         }
+
+        // NoOp
         ClientInputAction::None => return Ok(()),
+
+        // Command the server to pause or play the timer
         ClientInputAction::PlayPause => {
             let msg = ClientToServerMsg::PlayPause;
             InterProcessCommunication::send_ipc_message(msg, writer)
                 .await
                 .context("Could not send IPC message")?;
         }
+
+        // Command the server to skip to the next interval
         ClientInputAction::Skip => {
             let msg = ClientToServerMsg::Skip;
             InterProcessCommunication::send_ipc_message(msg, writer)
@@ -138,6 +157,8 @@ async fn handle_client_input_action(
     Ok(())
 }
 
+/// Handle incoming [ServerToClientMsg]s (e.g. by sending incoming timer state to the
+/// [TerminalOutputTask]).
 fn handle_server_to_client_msg(
     msg: ServerToClientMsg,
     terminal_out_tx: &UnboundedSender<TerminalEvent>,

@@ -1,24 +1,73 @@
-use crate::client::view::timer_view;
+//! Code related to client async terminal output handling
+
+use crate::client::terminal_io::default_interface::render;
 use anyhow::Context;
 use crossterm::cursor::Hide;
 use crossterm::style::Stylize;
 use crossterm::terminal::{enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{cursor::Show, event::DisableMouseCapture, execute, terminal::disable_raw_mode};
+use futures::lock::Mutex;
 use std::io::Write;
+use std::sync::Arc;
 use std::{io::Stdout, process};
+use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::task::{spawn, JoinHandle};
 use tui::{backend::CrosstermBackend, Terminal as TuiTerminal};
 use zentime_rs_timer::timer::ViewState;
 
+use super::terminal_event::TerminalEvent;
+
+/// Tokio task which continouusly renders the current view state to the terminal output.
+#[derive(Copy, Clone, Debug)]
+pub struct TerminalOutputTask {}
+
+impl TerminalOutputTask {
+    /// Spawns a tokio task which continously handles terminal output
+    pub async fn spawn(
+        terminal_out: Arc<Mutex<Box<dyn TerminalOut + Send>>>,
+        mut out_rx: UnboundedReceiver<TerminalEvent>,
+    ) -> JoinHandle<()> {
+        spawn(async move {
+            loop {
+                match out_rx.recv().await {
+                    Some(TerminalEvent::View(state)) => {
+                        if let Err(error) = terminal_out.lock().await.render(state) {
+                            return terminal_out
+                                .lock()
+                                .await
+                                .quit(Some(format!("ERROR: {}", error)), true);
+                        }
+                    }
+                    Some(TerminalEvent::Quit { msg, error }) => {
+                        return terminal_out.lock().await.quit(msg, error);
+                    }
+                    None => continue,
+                }
+            }
+        })
+    }
+}
+
+/// Trait representing a terminal output
 pub trait TerminalOut {
+    /// Renders the current [ViewState]
     fn render(&mut self, state: ViewState) -> anyhow::Result<()>;
+
+    /// Gracefully quits the [Self] so that raw-mode, alternate screens etc.
+    /// are restored to their default.
     fn quit(&mut self, msg: Option<String>, is_error: bool);
 }
 
+/// Implementation of a [TerminalOut]
+/// Uses a [TuiTerminal] with a [CrosstermBackend] to render.
+#[allow(missing_debug_implementations)]
+#[derive()]
 pub struct DefaultInterface {
     tui_terminal: TuiTerminal<CrosstermBackend<Stdout>>,
 }
 
 impl DefaultInterface {
+    /// Creates a new default interface
     pub fn new() -> anyhow::Result<Self> {
         let backend = CrosstermBackend::new(std::io::stdout());
         execute!(std::io::stdout(), EnterAlternateScreen)
@@ -37,7 +86,7 @@ impl DefaultInterface {
 
 impl TerminalOut for DefaultInterface {
     fn render(&mut self, state: ViewState) -> anyhow::Result<()> {
-        timer_view(&mut self.tui_terminal, state)
+        render(&mut self.tui_terminal, state)
     }
 
     fn quit(&mut self, msg: Option<String>, is_error: bool) {
@@ -55,9 +104,13 @@ impl TerminalOut for DefaultInterface {
     }
 }
 
+/// Minimal interface which uses a [Crossterm] to display colors, hide the cursor and enable raw mode.
+/// The actual rendering happens with simple `print!`-macro-calls.
+#[derive(Debug, Copy, Clone)]
 pub struct MinimalInterface {}
 
 impl MinimalInterface {
+    /// Creates a new minimal interface and also enables raw mode and hides the cursor.
     pub fn new() -> anyhow::Result<Self> {
         enable_raw_mode().context("Can't run in raw mode")?;
 
@@ -85,6 +138,37 @@ impl TerminalOut for MinimalInterface {
         execute!(std::io::stdout(), Show, DisableMouseCapture)
             .expect("Could not execute crossterm macros");
 
+        println!("\r\n{}", msg.unwrap_or_else(|| String::from("")));
+
+        process::exit(i32::from(is_error))
+    }
+}
+
+/// Most basic interface.
+/// Just uses uncolored `println!`-calls to render the current view state.
+#[derive(Copy, Clone, Debug)]
+pub struct RawInterface {}
+
+impl RawInterface {
+    /// Creates a new [RawInterface]
+    pub fn new() -> anyhow::Result<Self> {
+        Ok(Self {})
+    }
+}
+
+impl TerminalOut for RawInterface {
+    fn render(&mut self, state: ViewState) -> anyhow::Result<()> {
+        println!(
+            "{} {} {}",
+            state.round,
+            state.time,
+            if state.is_break { "Break" } else { "Focus" }
+        );
+
+        Ok(())
+    }
+
+    fn quit(&mut self, msg: Option<String>, is_error: bool) {
         println!("\r\n{}", msg.unwrap_or_else(|| String::from("")));
 
         process::exit(i32::from(is_error))

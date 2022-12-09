@@ -3,6 +3,7 @@ use std::thread;
 
 // Code copied from: https://github.com/yuizho/pomors/blob/master/src/sound.rs
 
+/// Play the sound file
 pub fn play(sound_file: impl FileData, volume: f32) {
     let audio = rodio::Decoder::new(Cursor::new(sound_file.get_bytes()))
         .expect("failed to load audio data");

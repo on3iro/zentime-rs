@@ -1,3 +1,5 @@
+//! Code related to async client terminal input handling
+
 use crossterm::event::{EventStream, KeyCode, KeyEvent, KeyModifiers};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::task::yield_now;
@@ -6,6 +8,8 @@ use tokio_stream::StreamExt;
 
 use crossterm::event::Event;
 
+/// Actions triggered by user terminal input on a client
+#[derive(Copy, Clone, Debug)]
 pub enum ClientInputAction {
     /// Quit Timer and terminate server
     Quit,
@@ -23,9 +27,13 @@ pub enum ClientInputAction {
     Skip,
 }
 
+/// Tokio task handling terminal input events
+#[derive(Copy, Clone, Debug)]
 pub struct TerminalInputTask {}
 
 impl TerminalInputTask {
+    /// Spanws the task and converts incoming terminal input events into [ClientInputAction]s and
+    /// sends them to the client.
     pub async fn spawn(input_worker_tx: UnboundedSender<ClientInputAction>) -> JoinHandle<()> {
         spawn(async move {
             let mut stream = EventStream::new();
@@ -34,6 +42,7 @@ impl TerminalInputTask {
                 let result = stream.next().await;
                 if let Some(Ok(event)) = result {
                     if let Err(error) = input_worker_tx.send(handle_input(event)) {
+                        // TODO handle this more gracefully
                         panic!("Could not send ClientInputAction: {}", error)
                     };
                 }
@@ -44,6 +53,7 @@ impl TerminalInputTask {
     }
 }
 
+/// Keymap from terminal input events to [ClientInputAction]
 fn handle_input(event: Event) -> ClientInputAction {
     if let Event::Key(key_event) = event {
         match key_event {

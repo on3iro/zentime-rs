@@ -1,6 +1,6 @@
 [view]
 
-# interface = 'minimal'
+interface = 'raw'
 
 [timers]
 # Timer length in seconds

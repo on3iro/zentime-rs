@@ -1,6 +1,8 @@
+//! Terminal event handled by a client
+
 use zentime_rs_timer::timer::ViewState;
 
-/// Describes a message passed to the [Timer::view_sender]
+/// Describes a message passed from a connection to the [TerminalOutputTask]
 #[derive(Debug)]
 pub enum TerminalEvent {
     /// Rendering information with a [ViewState]
@@ -8,5 +10,11 @@ pub enum TerminalEvent {
 
     /// The timer received an [AppAction::Quit] and forwards
     /// this information to the view
-    Quit { msg: Option<String>, error: bool },
+    Quit {
+        /// Optinal message to display on quit
+        msg: Option<String>,
+
+        /// Determines if the quit should happen with an error display
+        error: bool,
+    },
 }

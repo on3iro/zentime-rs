@@ -11,11 +11,7 @@ use std::time::{Duration, Instant};
 // NOTE: I tried to use the typestate approach, like it's described here:
 // https://cliffle.com/blog/rust-typestate/
 
-// TODO
-// * update doc strings!!!
-// * write tests
-
-/// Information that can be shared  with the [Timer::view_sender]
+/// Information that will be handed to the [on_tick] closure continously
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ViewState {
     /// Denotes if the current timer is a break timer
@@ -47,7 +43,7 @@ impl TimerState for Paused {}
 impl TimerState for Running {}
 
 /// State which is shared between timers when they transition from one timer state to the
-/// next. Some of its information is also being shared with the `view_sender`.
+/// next. Some of its information is also being shared with the [OnTick] closure.
 #[derive(Clone, Copy, Debug)]
 pub struct TimerStateData {
     /// State that denotes if the current timer is a break timer.
@@ -65,8 +61,8 @@ type OnTick = Box<dyn FnMut(ViewState) -> Option<TimerInputAction>>;
 /// Timer which can either be in a paused state or a running state.
 /// To instantiate the timer run `Timer::new()`.
 /// To actually start it call `Timer::init()`
-/// This puts the timer into a paused state waiting for [TimerAction](TimerAction)s to be sent down
-/// the input channel. For example an [TimerAction::PlayPause](TimerAction::PlayPause) starts the timer.
+/// This puts the timer into a paused state waiting for [TimerInputAction](TimerInputAction)s to be sent down
+/// the input channel. For example an [TimerInputAction::PlayPause](TimerInputAction::PlayPause) starts the timer.
 ///
 /// ## Example
 ///
@@ -92,7 +88,7 @@ type OnTick = Box<dyn FnMut(ViewState) -> Option<TimerInputAction>>;
 /// });
 /// ```
 pub struct Timer<S: TimerState> {
-    /// Config describin how long intervals are etc.
+    /// Config describing how long intervals are etc.
     config: TimerConfig,
 
     /// Callback closure which is called at the end of each timer
@@ -248,7 +244,7 @@ impl Timer<Paused> {
 
 impl Timer<Running> {
     /// Transitions the running timer into a paused timer state and calls `init()` on_interval_end
-    /// it, so that the new timer is ready to receive an [TimerAction]
+    /// it, so that the new timer is ready to receive an [TimerInputAction]
     fn pause(self) {
         Timer {
             config: self.config,
@@ -263,8 +259,7 @@ impl Timer<Running> {
     }
 
     /// Runs the timer and awaits input.
-    /// Depending on the input [TimerAction] the timer might, Quit (and inform [Self::view_sender] about this),
-    /// transition into a paused state or jump to the next interval.
+    /// Depending on the input [TimerInputAction] the timer might transition into a paused state or skip to the next interval.
     fn start(mut self) {
         while self.internal_state.target_time > Instant::now() {
             let time = (self.internal_state.target_time - Instant::now()).as_secs();
