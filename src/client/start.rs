@@ -27,12 +27,12 @@ use crate::client::terminal_io::output::MinimalInterface;
 ///
 /// ```no_run
 /// use zentime_rs::client::start;
-/// use zentime_rs::config::create_config;
+/// use zentime_rs::config::create_base_config;
 /// use zentime_rs::config::Config;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let config: Config = create_config("./some/path/config.toml")
+///     let config: Config = create_base_config("./some/path/config.toml")
 ///        .extract()
 ///        .expect("Could not create config");
 ///     start(config).await;

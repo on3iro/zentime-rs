@@ -1,20 +1,24 @@
+use crate::ClientConfig;
+use figment::providers::Serialized;
 use std::env::current_dir;
 use std::process;
 use sysinfo::Pid;
 use zentime_rs::client::start;
-use zentime_rs::config::create_config;
+use zentime_rs::config::create_base_config;
 use zentime_rs::config::Config;
+use zentime_rs::config::PartialConfigBuilder;
 
 use sysinfo::ProcessExt;
 use sysinfo::System;
 use sysinfo::SystemExt;
 use tokio::process::Command;
 
+use crate::CommonArgs;
+
 #[tokio::main]
-pub async fn default_cmd(config_path: &str) {
-    let config: Config = create_config(config_path)
-        .extract()
-        .expect("Could not create config");
+pub async fn default_cmd(common_args: &CommonArgs, client_config: &ClientConfig) {
+    let config_path = &common_args.config;
+    let config: Config = get_client_config(config_path, client_config);
 
     // TODO
     // * check if another zentime process is already running
@@ -41,14 +45,12 @@ pub async fn default_cmd(config_path: &str) {
             .expect("Could not get current directory")
             .into_os_string();
 
+        let server_args = get_server_args(common_args);
+
         if let Err(error) = Command::new(current_process.exe())
             .arg("server")
             .arg("start")
-            // NOTE: it's important that the '{' starts
-            // immediately after the -c flag, because otherwise the config path would have
-            // additional whitespace. (We trim() the path inside [config::create_config()], but
-            // still...)
-            .arg(format!("-c{}", &config_path))
+            .args(server_args)
             .current_dir(current_dir)
             .spawn()
             .expect("Could not start server daemon")
@@ -60,4 +62,65 @@ pub async fn default_cmd(config_path: &str) {
     }
 
     start(config).await;
+}
+
+// TODO try to get rid of all that boilerplate
+fn get_server_args(common_args: &CommonArgs) -> Vec<String> {
+    let mut args: Vec<String> = vec![
+        // Config path
+        "-c".to_string(),
+        common_args.config.to_string(),
+    ];
+
+    if let Some(enable_bell) = &common_args.server_config.enable_bell {
+        args.push("--enable-bell".to_string());
+        args.push(enable_bell.to_string());
+    }
+
+    if let Some(volume) = &common_args.server_config.volume {
+        args.push("--volume".to_string());
+        args.push(volume.to_string());
+    }
+
+    if let Some(show_notification) = &common_args.server_config.show_notification {
+        args.push("--show-notification".to_string());
+        args.push(show_notification.to_string());
+    }
+
+    if let Some(timer) = &common_args.server_config.timer {
+        args.push("--timer".to_string());
+        args.push(timer.to_string());
+    }
+
+    if let Some(minor_break) = &common_args.server_config.minor_break {
+        args.push("--minor-break".to_string());
+        args.push(minor_break.to_string());
+    }
+
+    if let Some(major_break) = &common_args.server_config.major_break {
+        args.push("--major-break".to_string());
+        args.push(major_break.to_string());
+    }
+
+    if let Some(intervals) = &common_args.server_config.intervals {
+        args.push("--intervals".to_string());
+        args.push(intervals.to_string())
+    }
+
+    args
+}
+
+fn get_client_config(config_path: &str, client_config: &ClientConfig) -> Config {
+    let mut client_config_builder = PartialConfigBuilder::new();
+
+    if let Some(interface) = &client_config.interface {
+        client_config_builder.interface(interface.to_string());
+    }
+
+    let client_config = client_config_builder.build();
+
+    create_base_config(config_path)
+        .merge(Serialized::defaults(client_config))
+        .extract()
+        .expect("Could not create config")
 }
