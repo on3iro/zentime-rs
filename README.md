@@ -28,7 +28,7 @@ brew install zentime
 ### Cargo
 
 ```
-cargo install zentime
+cargo install zentime-rs
 ```
 
 ## Configuration
