@@ -1,7 +1,7 @@
 # zentime-rs
 
 [![Release](https://github.com/on3iro/zentime-rs/actions/workflows/release.yaml/badge.svg)](https://github.com/on3iro/zentime-rs/actions/workflows/release.yaml)
-[![docs.rs](https://img.shields.io/docsrs/zentime-rs/latest?label=docs)](https://docs.rs/zentime-rs/0.4.2/zentime_rs/)
+[![docs.rs](https://img.shields.io/docsrs/zentime-rs/latest?label=docs)](https://docs.rs/zentime-rs/latest/zentime_rs/)
 
 # Table of Contents
 
