@@ -1,17 +1,21 @@
 use daemonize::Daemonize;
+use figment::providers::Serialized;
 use interprocess::local_socket::tokio::LocalSocketStream;
 use log::{error, info};
 use std::env::current_dir;
 use std::fs::File;
 use std::thread::sleep;
 use std::time::Duration;
-use zentime_rs::config::create_config;
+use zentime_rs::config::create_base_config;
 use zentime_rs::config::Config;
+use zentime_rs::config::PartialConfigBuilder;
 use zentime_rs::ipc::get_socket_name;
 use zentime_rs::ipc::ClientToServerMsg;
 use zentime_rs::ipc::InterProcessCommunication;
 use zentime_rs::server::start;
 use zentime_rs::server::status::server_status;
+
+use crate::CommonArgs;
 
 /// Daemonizes the current process and then starts a zentime server instance in it (if there isn't
 /// another server already running - otherwise the process terminates).
@@ -19,7 +23,7 @@ use zentime_rs::server::status::server_status;
 /// NOTE: It's important, that we run this synchronously.
 /// [server::start()] will then create a tokio runtime, after the process has been
 /// deamonized
-pub fn start_daemonized(config_path: &str) {
+pub fn start_daemonized(args: &CommonArgs) {
     let stdout_path = "/tmp/zentime.d.out";
     let stdout = File::create(stdout_path)
         .unwrap_or_else(|error| panic!("Could not create {}: {}", stdout_path, error));
@@ -42,14 +46,54 @@ pub fn start_daemonized(config_path: &str) {
 
     info!("Daemonized server process");
 
-    info!("Creating config from path: {}", config_path);
-    let config: Config = create_config(config_path)
-        .extract()
-        .expect("Could not create config");
+    let config = get_server_config(args);
 
     if let Err(error) = start(config) {
         error!("A server error occured: {}", error);
     };
+}
+
+// TODO try to get rid of all that boilerplate
+fn get_server_config(args: &CommonArgs) -> Config {
+    let config_path = &args.config;
+    info!("Creating config from path: {}", config_path);
+
+    let mut server_config_builder = PartialConfigBuilder::new();
+
+    if let Some(enable_bell) = &args.server_config.enable_bell {
+        server_config_builder.enable_bell(*enable_bell);
+    }
+
+    if let Some(volume) = &args.server_config.volume {
+        server_config_builder.volume(*volume);
+    }
+
+    if let Some(show_notification) = &args.server_config.show_notification {
+        server_config_builder.show_notification(*show_notification);
+    }
+
+    if let Some(timer) = &args.server_config.timer {
+        server_config_builder.timer(*timer);
+    }
+
+    if let Some(minor_break) = &args.server_config.minor_break {
+        server_config_builder.minor_break(*minor_break);
+    }
+
+    if let Some(major_break) = &args.server_config.major_break {
+        server_config_builder.major_break(*major_break);
+    }
+
+    if let Some(intervals) = &args.server_config.intervals {
+        server_config_builder.intervals(*intervals);
+    }
+
+    let server_config = server_config_builder.build();
+
+    create_base_config(config_path)
+        .merge(Serialized::defaults(server_config))
+        .extract()
+        .expect("Could not create config")
 }
 
 /// Stops a currently running zentime server (there can only ever be a single instance - all
