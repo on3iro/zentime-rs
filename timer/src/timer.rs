@@ -83,8 +83,7 @@ type OnTick = Box<dyn FnMut(ViewState) -> Option<TimerInputAction>>;
 ///             None
 ///         }),
 ///     )
-///     .init()
-///     .expect("Could not initialize timer");
+///     .init();
 /// });
 /// ```
 pub struct Timer<S: TimerState> {

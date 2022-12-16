@@ -15,10 +15,10 @@
 //! use std::thread;
 //! use std::time::Duration;
 //! use zentime_rs_timer::config::TimerConfig;
-//! use zentime_rs_timer::timer_action::TimerAction;
+//! use zentime_rs_timer::timer_action::TimerInputAction;
 //! use zentime_rs_timer::timer::{ Timer, ViewState };
 //!
-//!     let (terminal_input_sender, terminal_input_receiver): (Sender<TimerAction>, Receiver<TimerAction>) =
+//!     let (terminal_input_sender, terminal_input_receiver): (Sender<TimerInputAction>, Receiver<TimerInputAction>) =
 //!         mpsc::channel();
 //!     let (view_sender, view_receiver): (Sender<ViewState>, Receiver<ViewState>) =
 //!         mpsc::channel();
@@ -32,40 +32,35 @@
 //!             Box::new(move |state, msg| {
 //!                 println!("{} {}", state.round, msg);
 //!             }),
-//!             Box::new(move |view_state| -> Option<TimerAction> {
+//!             Box::new(move |view_state| -> Option<TimerInputAction> {
 //!                 view_sender.send(view_state).unwrap();
 //!
-//!                 let input = terminal_input_receiver.recv_timeout(Duration::from_secs(1));
+//!                 let input = terminal_input_receiver.recv_timeout(Duration::from_millis(100));
 //!
 //!                 match input {
 //!                     Ok(action) => Some(action),
-//!                     Err(RecvTimeoutError::Disconnected) => Some(TimerAction::Quit),
+//!                     Err(RecvTimeoutError::Disconnected) => std::process::exit(0),
 //!                     _ => None,
 //!                 }
 //!             }),
 //!         );
 //!
-//!         if timer.init().is_err() {
-//!             // Do nothing
-//!         };
+//!         timer.init();
 //!     });
 //!
 //!     let action_jh = thread::spawn(move || {
 //!         // Start the timer
-//!         terminal_input_sender.send(TimerAction::PlayPause).unwrap();
+//!         terminal_input_sender.send(TimerInputAction::PlayPause).unwrap();
 //!
 //!         // Render current timer state three seconds in a row
 //!         for _ in 0..3 {
-//!             thread::sleep(Duration::from_secs(1));
+//!             thread::sleep(Duration::from_millis(100));
 //!             if let Ok(state) = view_receiver.recv() {
 //!                 println!("{}", state.time)
 //!             }
 //!         }
 //!
-//!         // Terminate timer
-//!         terminal_input_sender
-//!             .send(TimerAction::Quit)
-//!             .expect("Could not send quit action");
+//!         # std::process::exit(0);
 //!     });
 //!
 //!     action_jh.join().unwrap();
