@@ -8,7 +8,6 @@ use std::thread::sleep;
 use std::time::Duration;
 use zentime_rs::config::create_base_config;
 use zentime_rs::config::Config;
-use zentime_rs::config::PartialConfigBuilder;
 use zentime_rs::ipc::get_socket_name;
 use zentime_rs::ipc::ClientToServerMsg;
 use zentime_rs::ipc::InterProcessCommunication;
@@ -53,45 +52,12 @@ pub fn start_daemonized(args: &CommonArgs) {
     };
 }
 
-// TODO try to get rid of all that boilerplate
 fn get_server_config(args: &CommonArgs) -> Config {
     let config_path = &args.config;
     info!("Creating config from path: {}", config_path);
 
-    let mut server_config_builder = PartialConfigBuilder::new();
-
-    if let Some(enable_bell) = &args.server_config.enable_bell {
-        server_config_builder.enable_bell(*enable_bell);
-    }
-
-    if let Some(volume) = &args.server_config.volume {
-        server_config_builder.volume(*volume);
-    }
-
-    if let Some(show_notification) = &args.server_config.show_notification {
-        server_config_builder.show_notification(*show_notification);
-    }
-
-    if let Some(timer) = &args.server_config.timer {
-        server_config_builder.timer(*timer);
-    }
-
-    if let Some(minor_break) = &args.server_config.minor_break {
-        server_config_builder.minor_break(*minor_break);
-    }
-
-    if let Some(major_break) = &args.server_config.major_break {
-        server_config_builder.major_break(*major_break);
-    }
-
-    if let Some(intervals) = &args.server_config.intervals {
-        server_config_builder.intervals(*intervals);
-    }
-
-    let server_config = server_config_builder.build();
-
     create_base_config(config_path)
-        .merge(Serialized::defaults(server_config))
+        .merge(Serialized::defaults(args.server_config))
         .extract()
         .expect("Could not create config")
 }
