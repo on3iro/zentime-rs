@@ -30,16 +30,14 @@ pub fn server_status() -> ServerStatus {
     // socket address - or making use of the executable path)
     let system = System::new_all();
 
-    let zentime_process_instances = system.processes_by_name("zentime");
+    let mut zentime_process_instances = system.processes_by_name("zentime");
 
     // WHY:
-    // We identify a server process by its command (e.g. "zentime server start").
-    // This process itself will be one instance, so if we have two instances there is already
-    // another server process running and we don't have to start this one and can exit early.
-    let server_is_running = zentime_process_instances
-        .filter(|p| p.cmd().contains(&String::from("server")))
-        .count()
-        == 2;
+    // We identify a server process by its command (e.g. "zentime server start") and assume that
+    // there is no other way, that the word "start" is part of a server command
+    let server_is_running = zentime_process_instances.any(|p| {
+        p.cmd().contains(&String::from("server")) && p.cmd().contains(&String::from("start"))
+    });
 
     if server_is_running {
         ServerStatus::Running

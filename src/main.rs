@@ -1,4 +1,5 @@
 use crate::default_cmd::default_cmd;
+use crate::subcommands::query_server_once::query_server_once;
 use clap::{Parser, Subcommand};
 use env_logger::Env;
 
@@ -111,6 +112,8 @@ struct Cli {
 /// Available cli sub commands
 #[derive(Subcommand)]
 enum Commands {
+    Once,
+
     /// Interact with the zentime server
     Server {
         #[command(subcommand)]
@@ -145,6 +148,9 @@ fn main() {
             ServerCommands::Stop => stop(),
             ServerCommands::Status => status(),
         },
+        Some(Commands::Once) => {
+            query_server_once();
+        }
 
         None => default_cmd(&cli.common_args, &cli.client_config),
     }

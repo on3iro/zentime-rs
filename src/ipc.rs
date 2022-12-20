@@ -45,6 +45,12 @@ pub enum ClientToServerMsg {
 
     /// Command the server to skip to the next interval
     Skip,
+
+    /// Currently it's necessary for a client to write at least once to a socket
+    /// connection to synchronize with the server.
+    /// For one-shot zentime commands we therefore use this sync msg to synchronize
+    /// with the server.
+    Sync,
 }
 
 /// Service handling communication between processes over the zentime socket.
