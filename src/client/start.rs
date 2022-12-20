@@ -1,7 +1,6 @@
 //! Module containing code relevant to starting a zentime terminal client.
 //! See [`start`]
 
-use crate::client::terminal_io::output::RawInterface;
 use crate::client::terminal_io::output::TerminalOutputTask;
 use std::sync::Arc;
 
@@ -70,12 +69,6 @@ pub async fn start(config: Config) {
 fn init_interface(interface_type: String) -> Box<dyn TerminalOut + Send> {
     match interface_type.as_str() {
         "minimal" => match MinimalInterface::new() {
-            Ok(interface) => Box::new(interface),
-            Err(error) => {
-                panic!("Could not initialize interface: {}", error);
-            }
-        },
-        "raw" => match RawInterface::new() {
             Ok(interface) => Box::new(interface),
             Err(error) => {
                 panic!("Could not initialize interface: {}", error);

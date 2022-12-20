@@ -97,7 +97,12 @@ pub struct ClientConfig {
 
 /// Starts the timer or attaches to an already running timer
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(
+    author,
+    version,
+    about,
+    long_about = "When run without command: starts the zentime server if necessary and attaches a client to it."
+)]
 struct Cli {
     #[command(flatten)]
     common_args: CommonArgs,
@@ -112,6 +117,10 @@ struct Cli {
 /// Available cli sub commands
 #[derive(Subcommand)]
 enum Commands {
+    /// Runs a single [ViewState]-query against the server and
+    /// terminates the connection afterwards.
+    /// This is useful for integration with other tools such as tmux, to integrate
+    /// zentime into a status bar etc.
     Once,
 
     /// Interact with the zentime server
