@@ -143,34 +143,3 @@ impl TerminalOut for MinimalInterface {
         process::exit(i32::from(is_error))
     }
 }
-
-/// Most basic interface.
-/// Just uses uncolored `println!`-calls to render the current view state.
-#[derive(Copy, Clone, Debug)]
-pub struct RawInterface {}
-
-impl RawInterface {
-    /// Creates a new [RawInterface]
-    pub fn new() -> anyhow::Result<Self> {
-        Ok(Self {})
-    }
-}
-
-impl TerminalOut for RawInterface {
-    fn render(&mut self, state: ViewState) -> anyhow::Result<()> {
-        println!(
-            "{} {} {}",
-            state.round,
-            state.time,
-            if state.is_break { "Break" } else { "Focus" }
-        );
-
-        Ok(())
-    }
-
-    fn quit(&mut self, msg: Option<String>, is_error: bool) {
-        println!("\r\n{}", msg.unwrap_or_else(|| String::from("")));
-
-        process::exit(i32::from(is_error))
-    }
-}
