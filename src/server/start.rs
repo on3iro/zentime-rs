@@ -198,6 +198,10 @@ async fn handle_client_to_server_msg(
             info!("Client detached.");
             return Ok(CloseConnection::Yes);
         }
+
+        ClientToServerMsg::Sync => {
+            info!("Client synced with server");
+        }
     }
 
     Ok(CloseConnection::No)
