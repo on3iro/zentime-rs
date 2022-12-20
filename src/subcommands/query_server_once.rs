@@ -28,6 +28,9 @@ pub async fn query_server_once() {
             state.time,
             if state.is_break { "Break" } else { "Focus" }
         );
-        std::process::exit(0);
     }
+
+    InterProcessCommunication::send_ipc_message(ClientToServerMsg::Detach, &mut writer)
+        .await
+        .ok();
 }

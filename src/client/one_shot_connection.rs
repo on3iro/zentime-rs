@@ -14,6 +14,9 @@ use interprocess::local_socket::tokio::OwnedWriteHalf;
 /// If you just want to read from the server, you still need to write [ClientToServerMsg::Sync]
 /// first and make sure that the writer isn't being dropped before you read. Otherwise you will
 /// encount EOF on the socket!
+///
+/// NOTE:
+/// Also make sure to send a detach message to the server as well
 pub async fn one_shot_connection() -> anyhow::Result<(OwnedReadHalf, OwnedWriteHalf)> {
     // check if server is running -> if not, quit
     if server_status() == ServerStatus::Stopped {
