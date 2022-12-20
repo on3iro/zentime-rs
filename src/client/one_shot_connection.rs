@@ -1,3 +1,4 @@
+//! Creates a connection for single reads/writes from/to the server
 use crate::ipc::get_socket_name;
 use crate::server::status::server_status;
 use crate::server::status::ServerStatus;
