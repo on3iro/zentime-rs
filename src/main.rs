@@ -1,12 +1,16 @@
 use crate::default_cmd::default_cmd;
-use crate::subcommands::query_server_once::query_server_once;
 use clap::{Parser, Subcommand};
 use env_logger::Env;
 
 mod default_cmd;
 mod subcommands;
 use serde::{Deserialize, Serialize};
-use subcommands::server::{start_daemonized, status, stop};
+use subcommands::{
+    query_server_once::query_server_once,
+    server::{start_daemonized, status, stop},
+    skip_timer::skip_timer,
+    toggle_timer::toggle_timer,
+};
 
 #[derive(clap::Args)]
 pub struct CommonArgs {
@@ -123,6 +127,12 @@ enum Commands {
     /// zentime into a status bar etc.
     Once,
 
+    /// Toggles between timer play/pause
+    ToggleTimer,
+
+    /// Skips to next timer interval
+    Skip,
+
     /// Interact with the zentime server
     Server {
         #[command(subcommand)]
@@ -157,8 +167,17 @@ fn main() {
             ServerCommands::Stop => stop(),
             ServerCommands::Status => status(),
         },
+
         Some(Commands::Once) => {
             query_server_once();
+        }
+
+        Some(Commands::ToggleTimer) => {
+            toggle_timer();
+        }
+
+        Some(Commands::Skip) => {
+            skip_timer();
         }
 
         None => default_cmd(&cli.common_args, &cli.client_config),
