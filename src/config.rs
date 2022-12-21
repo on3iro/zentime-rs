@@ -11,10 +11,14 @@ use figment::{
 
 /// Configuration of notifications which are being send to the OS after each
 /// interval/break
-#[derive(Deserialize, Serialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct NotificationConfig {
     /// Enable/Disable bell
     pub enable_bell: bool,
+
+    /// Soundfile to be played back on each interval end.
+    /// Will default to a bell sound, if `None`
+    pub sound_file: Option<String>,
 
     /// Notification bell volume
     pub volume: f32,
@@ -27,6 +31,7 @@ impl Default for NotificationConfig {
     fn default() -> Self {
         NotificationConfig {
             volume: 0.5,
+            sound_file: None,
             enable_bell: true,
             show_notification: true,
         }

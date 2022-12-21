@@ -81,7 +81,7 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
             config.timers,
             Box::new(move |_, msg| {
                 // We simply discard errors here for now...
-                dispatch_notification(config.notifications, msg).ok();
+                dispatch_notification(config.clone().notifications, msg).ok();
             }),
             Box::new(move |view_state| {
                 // Update the view

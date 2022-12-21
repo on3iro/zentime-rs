@@ -75,6 +75,11 @@ fn get_server_args(common_args: &CommonArgs) -> Vec<String> {
         args.push(enable_bell.to_string());
     }
 
+    if let Some(sound_file) = &common_args.server_config.notifications.sound_file {
+        args.push("--sound-file".to_string());
+        args.push(sound_file.to_string());
+    }
+
     if let Some(volume) = &common_args.server_config.notifications.volume {
         args.push("--volume".to_string());
         args.push(volume.to_string());

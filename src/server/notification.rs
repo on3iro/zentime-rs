@@ -1,6 +1,6 @@
 //! OS-Notification and sound playback related functions.
 
-use super::sound::{play, SoundFile};
+use super::sound::play;
 use crate::config::NotificationConfig;
 use anyhow::bail;
 use log::error;
@@ -12,7 +12,7 @@ pub fn dispatch_notification(
     notification_string: &str,
 ) -> anyhow::Result<()> {
     if config.enable_bell {
-        play(SoundFile::Bell, config.volume);
+        play(config.sound_file, config.volume);
     }
 
     if config.show_notification {

@@ -57,7 +57,7 @@ fn get_server_config(args: &CommonArgs) -> Config {
     info!("Creating config from path: {}", config_path);
 
     create_base_config(config_path)
-        .merge(Serialized::defaults(args.server_config))
+        .merge(Serialized::defaults(args.server_config.clone()))
         .extract()
         .expect("Could not create config")
 }
