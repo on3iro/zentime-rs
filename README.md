@@ -53,7 +53,7 @@ cargo install zentime-rs
 The default location for the configuration file is `/home/<user>/.config/zentime/zentime.toml`.
 To get an overview of available configuration options please have a look at the [example configuration](./zentime.example.toml).
 
-For an overview of all available configuration keys, check out the [docs](zentime_rs::config::Config).
+For an overview of all available configuration keys, check out the [docs](https://docs.rs/zentime-rs/latest/zentime_rs/config/struct.Config.html).
 Note that each key (`view`, `timers` etc.) corresponds to the header of a [toml table](https://toml.io/en/v1.0.0#table) while
 clicking on the type inside the docs shows you the available configuration fields.
 
