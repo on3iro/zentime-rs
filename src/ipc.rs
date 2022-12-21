@@ -11,6 +11,8 @@ use zentime_rs_timer::timer::ViewState;
 
 const DEFAULT_SOCKET_PATH: &str = "/tmp/zentime.sock";
 const DEFAULT_SOCKET_NAMESPACE: &str = "@zentime.sock";
+const DEBUG_SOCKET_PATH: &str = "/tmp/zentime_debug.sock";
+const DEBUG_SOCKET_NAMESPACE: &str = "@zentime_debug.sock";
 
 /// Get zentime socket name over which server and clients may connect
 pub fn get_socket_name() -> &'static str {
@@ -18,9 +20,17 @@ pub fn get_socket_name() -> &'static str {
     // any imports of variants named `Both` happen down the line, they won't collide with the
     // enum we're working with here. Maybe someone should make a macro for this.
     use NameTypeSupport::*;
-    match NameTypeSupport::query() {
-        OnlyPaths => DEFAULT_SOCKET_PATH,
-        OnlyNamespaced | Both => DEFAULT_SOCKET_NAMESPACE,
+
+    if cfg!(debug_assertions) {
+        match NameTypeSupport::query() {
+            OnlyPaths => DEBUG_SOCKET_PATH,
+            OnlyNamespaced | Both => DEBUG_SOCKET_NAMESPACE,
+        }
+    } else {
+        match NameTypeSupport::query() {
+            OnlyPaths => DEFAULT_SOCKET_PATH,
+            OnlyNamespaced | Both => DEFAULT_SOCKET_NAMESPACE,
+        }
     }
 }
 
