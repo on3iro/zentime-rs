@@ -6,6 +6,8 @@ use sysinfo::Pid;
 use zentime_rs::client::start;
 use zentime_rs::config::create_base_config;
 use zentime_rs::config::Config;
+use zentime_rs::server::status::server_status;
+use zentime_rs::server::status::ServerStatus;
 
 use sysinfo::ProcessExt;
 use sysinfo::System;
@@ -19,19 +21,10 @@ pub async fn default_cmd(common_args: &CommonArgs, client_config: &ClientConfig)
     let config_path = &common_args.config;
     let config: Config = get_client_config(config_path, client_config);
 
-    // TODO
-    // * check if another zentime process is already running
-    // * if not, spawn zentime server start process
-    // * start client afterwards
     let system = System::new_all();
 
-    // NOTE: This is a bit brittle during development, because you could
-    // technically run another zentime process from another version
-    // FIXME - make this more robust (and also the check inside the server::start() method)
-    let current_is_only_process_instance = system.processes_by_name("zentime").count() == 1;
-
     // We need to spawn a server process before we can attach our client
-    if current_is_only_process_instance {
+    if server_status() == ServerStatus::Stopped {
         // WHY:
         // We want to get information about the current zentime process, e.g.
         // the path to its executable. That way this does also work in ci or during
