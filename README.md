@@ -58,6 +58,16 @@ For an overview of all available configuration keys, check out the [docs](https:
 Note that each key (`view`, `timers` etc.) corresponds to the header of a [toml table](https://toml.io/en/v1.0.0#table) while
 clicking on the type inside the docs shows you the available configuration fields.
 
+## Logs
+
+Logs are being written to:
+
+* `/tmp/zentime.d.err` - this captures any panics
+* `/tmp/zentime.d.out` - this captures error/warn/info etc. logs
+
+The default log level is `warn`.
+You can configure the log level by running zentime with `RUST_LOG=<level> zentime`.
+Here's an overview of [available log levels](https://docs.rs/log/0.4.17/log/enum.Level.html).
 
 ## Tmux integration example
 
