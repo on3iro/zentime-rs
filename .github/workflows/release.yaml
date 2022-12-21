@@ -38,7 +38,7 @@ jobs:
         # -i '' write replacement back to file instead of stdout
         # 1,/version/ only replace the first occurence
         run: |
-          sed -E -i '' "1,/version/ s/(version = )\"[0-9]+.[0-9]+.[0-9]+"/\1\"${{ steps.extract-version.outputs.tag-name }}\"/" ./Cargo.toml
+          sed -E -i '' "1,/version/ s/(version = )\"[0-9]+.[0-9]+.[0-9]+\"/\1\"${{ steps.extract-version.outputs.tag-name }}\"/" ./Cargo.toml
 
       - name: Commit
         run: |
