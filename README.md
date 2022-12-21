@@ -20,6 +20,7 @@ A simple terminal based pomodoro/productivity timer written in Rust.
 
 * Timer suited for the pomodoro technique
 * Socket-based Client/Server-Architecture, where multiple clients can attach to a single timer server
+* Server is terminal independent and runs as a daemon
 * TUI-interface with keymaps + and a minimal TUI-interface
 * CLI commands to interact with the timer without attaching a client (e.g. for integration into tools such as tmux)
 
