@@ -72,5 +72,5 @@ If you would like to add shortcuts (e.g. to toggle pause/play) from inside tmux 
 
 ```conf
 bind t run-shell "zentime toggle-timer > /dev/null"
-bind s run-shell "zentime skip > /dev/null"
+bind y run-shell "zentime skip > /dev/null"
 ```
