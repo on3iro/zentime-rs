@@ -25,13 +25,18 @@ pub struct CommonArgs {
 /// This should match [Config::NotificationConfig], but makes fields optional, so that they are not
 /// required by clap. If no value is provided and therefore the `Option` is `None`, we skip
 /// serializing the value.
-#[derive(clap::Args, Serialize, Deserialize, Copy, Clone, Debug)]
+#[derive(clap::Args, Serialize, Deserialize, Clone, Debug)]
 #[serde(rename(serialize = "NotificationConfig"))]
 struct ClapNotificationConfig {
     /// Enable/Disable bell
     #[serde(skip_serializing_if = "Option::is_none")]
     #[arg(long)]
     pub enable_bell: Option<bool>,
+
+    /// Path to soundfile which is played back on each interval end
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[arg(long)]
+    pub sound_file: Option<String>,
 
     /// Notification bell volume
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -71,7 +76,7 @@ struct ClapTimerConfig {
     pub intervals: Option<u64>,
 }
 
-#[derive(clap::Args, Serialize, Deserialize, Copy, Clone, Debug)]
+#[derive(clap::Args, Serialize, Deserialize, Clone, Debug)]
 #[serde(rename(serialize = "Config"))]
 pub struct ServerConfig {
     #[command(flatten)]
