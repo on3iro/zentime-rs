@@ -35,9 +35,22 @@ pub fn server_status() -> ServerStatus {
     // WHY:
     // We identify a server process by its command (e.g. "zentime server start") and assume that
     // there is no other way, that the word "start" is part of a server command
-    let server_is_running = zentime_process_instances.any(|p| {
-        p.cmd().contains(&String::from("server")) && p.cmd().contains(&String::from("start"))
-    });
+    //
+    // NOTE: During debug builds we use a different socket and therefore the server is not
+    // shared with the production one
+    let server_is_running = if cfg!(debug_assertions) {
+        zentime_process_instances.any(|p| {
+            p.cmd()[0].contains(&String::from("target/debug"))
+                && p.cmd().contains(&String::from("server"))
+                && p.cmd().contains(&String::from("start"))
+        })
+    } else {
+        zentime_process_instances.any(|p| {
+            !p.cmd()[0].contains(&String::from("target/debug"))
+                && p.cmd().contains(&String::from("server"))
+                && p.cmd().contains(&String::from("start"))
+        })
+    };
 
     if server_is_running {
         ServerStatus::Running
