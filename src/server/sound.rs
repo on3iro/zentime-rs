@@ -1,11 +1,26 @@
 use log::{error, info};
+use rodio::decoder::DecoderError;
+use rodio::StreamError;
 use std::io::Cursor;
 use std::thread;
+use thiserror::Error;
 
 // Code copied from: https://github.com/yuizho/pomors/blob/master/src/sound.rs
 
+#[derive(Debug, Error)]
+pub enum AudioPlaybackError {
+    #[error("Could not decode audio data")]
+    DecodeError(#[from] DecoderError),
+
+    #[error("Failed to find output device")]
+    DeviceNotFound(#[from] StreamError),
+
+    #[error("Could not play back sound file because sink could not be created")]
+    SinkNotCreated,
+}
+
 /// Play the sound file
-pub fn play(sound_file: Option<String>, volume: f32) {
+pub fn play(sound_file: Option<String>, volume: f32) -> Result<(), AudioPlaybackError> {
     let custom_sound = match sound_file {
         Some(path) => match std::fs::read(path) {
             Ok(bytes) => Some(SoundFile::Custom(bytes)),
@@ -22,17 +37,21 @@ pub fn play(sound_file: Option<String>, volume: f32) {
         SoundFile::Default
     });
 
-    let audio = rodio::Decoder::new(Cursor::new(sound_file.get_bytes()))
-        .expect("failed to load audio data");
+    let audio = rodio::Decoder::new(Cursor::new(sound_file.get_bytes()))?;
 
-    thread::spawn(move || {
-        let (_stream, stream_handle) =
-            rodio::OutputStream::try_default().expect("failed to find output device");
-        let sink = rodio::Sink::try_new(&stream_handle).expect("failed to create sink");
+    thread::spawn(move || -> Result<(), AudioPlaybackError> {
+        let (_stream, stream_handle) = rodio::OutputStream::try_default()?;
+        let sink =
+            rodio::Sink::try_new(&stream_handle).map_err(|_| AudioPlaybackError::SinkNotCreated)?;
         sink.append(audio);
         sink.set_volume(volume);
         sink.sleep_until_end();
-    });
+        Ok(())
+    })
+    .join()
+    .unwrap()?;
+
+    Ok(())
 }
 
 pub trait FileData {

@@ -7,7 +7,7 @@ use crate::server::timer_output::TimerOutputAction;
 use anyhow::Context;
 use crossbeam::channel::{unbounded, Sender};
 use interprocess::local_socket::tokio::OwnedWriteHalf;
-use log::info;
+use log::{info, warn};
 use tokio::task::{spawn_blocking, yield_now};
 
 use std::sync::Arc;
@@ -80,8 +80,9 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
         Timer::new(
             config.timers,
             Box::new(move |_, msg| {
-                // We simply discard errors here for now...
-                dispatch_notification(config.clone().notifications, msg).ok();
+                if let Err(error) = dispatch_notification(config.clone().notifications, msg) {
+                    warn!("{}", error);
+                };
             }),
             Box::new(move |view_state| {
                 // Update the view
