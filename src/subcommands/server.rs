@@ -16,6 +16,11 @@ use zentime_rs::server::status::server_status;
 
 use crate::CommonArgs;
 
+const DEFAULT_OUT_FILE: &str = "/tmp/zentime.d.out";
+const DEFAULT_ERROR_FILE: &str = "/tmp/zentime.d.err";
+const DEBUG_OUT_FILE: &str = "/tmp/zentime_debug.d.out";
+const DEBUG_ERROR_FILE: &str = "/tmp/zentime_debug.d.err";
+
 /// Daemonizes the current process and then starts a zentime server instance in it (if there isn't
 /// another server already running - otherwise the process terminates).
 ///
@@ -23,10 +28,19 @@ use crate::CommonArgs;
 /// [server::start()] will then create a tokio runtime, after the process has been
 /// deamonized
 pub fn start_daemonized(args: &CommonArgs) {
-    let stdout_path = "/tmp/zentime.d.out";
+    let stdout_path = if cfg!(debug_assertions) {
+        DEBUG_OUT_FILE
+    } else {
+        DEFAULT_OUT_FILE
+    };
     let stdout = File::create(stdout_path)
         .unwrap_or_else(|error| panic!("Could not create {}: {}", stdout_path, error));
-    let stderr_path = "/tmp/zentime.d.err";
+
+    let stderr_path = if cfg!(debug_assertions) {
+        DEBUG_ERROR_FILE
+    } else {
+        DEFAULT_ERROR_FILE
+    };
     let stderr = File::create(stderr_path)
         .unwrap_or_else(|error| panic!("Could not create {}: {}", stderr_path, error));
 

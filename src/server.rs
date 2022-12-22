@@ -1,7 +1,7 @@
 //! Zentime server utilities
 
 pub mod notification;
-mod sound;
+pub mod sound;
 mod start;
 pub mod status;
 mod timer_output;
