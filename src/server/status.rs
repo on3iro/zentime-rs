@@ -25,9 +25,6 @@ impl Display for ServerStatus {
 /// Gets the current status of the zentime server, by checking if a process is running
 /// which was started by a `zentime server`-command.
 pub fn server_status() -> ServerStatus {
-    // TODO
-    // * add a way to connect to a different server during development (e.g. by specifying the
-    // socket address - or making use of the executable path)
     let system = System::new_all();
 
     let mut zentime_process_instances = system.processes_by_name("zentime");

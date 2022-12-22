@@ -1,3 +1,4 @@
+//! Sound playback related functions
 use log::{error, info};
 use rodio::decoder::DecoderError;
 use rodio::StreamError;
@@ -7,19 +8,23 @@ use thiserror::Error;
 
 // Code copied from: https://github.com/yuizho/pomors/blob/master/src/sound.rs
 
+/// Error type that describes error that could happen before/during audio playback
 #[derive(Debug, Error)]
 pub enum AudioPlaybackError {
+    /// Denotes that the given [SoundFile] could not be decoded
     #[error("Could not decode audio data")]
     DecodeError(#[from] DecoderError),
 
+    /// Denotes that no output device could be found
     #[error("Failed to find output device")]
     DeviceNotFound(#[from] StreamError),
 
+    /// The sink on the device to playback the sound could not be created
     #[error("Could not play back sound file because sink could not be created")]
     SinkNotCreated,
 }
 
-/// Play the sound file
+/// Play the sound file from sound_file path or the default sound file
 pub fn play(sound_file: Option<String>, volume: f32) -> Result<(), AudioPlaybackError> {
     let custom_sound = match sound_file {
         Some(path) => match std::fs::read(path) {
@@ -54,11 +59,11 @@ pub fn play(sound_file: Option<String>, volume: f32) -> Result<(), AudioPlayback
     Ok(())
 }
 
-pub trait FileData {
+trait FileData {
     fn get_bytes(&self) -> Vec<u8>;
 }
 
-pub enum SoundFile {
+enum SoundFile {
     Default,
     Custom(Vec<u8>),
 }

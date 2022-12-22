@@ -7,7 +7,7 @@ use crate::server::timer_output::TimerOutputAction;
 use anyhow::Context;
 use crossbeam::channel::{unbounded, Sender};
 use interprocess::local_socket::tokio::OwnedWriteHalf;
-use log::{info, warn};
+use log::{error, info};
 use tokio::task::{spawn_blocking, yield_now};
 
 use std::sync::Arc;
@@ -26,6 +26,9 @@ use super::status::{server_status, ServerStatus};
 
 /// Starts the server by opening the zentime socket and listening for incoming connections.
 /// This will just quit if another zentime server process is already running.
+///
+/// NOTE:
+/// This spawns a tokio runtime and should therefore not be run inside another tokio runtime.
 #[tokio::main]
 pub async fn start(config: Config) -> anyhow::Result<()> {
     let socket_name = get_socket_name();
@@ -81,7 +84,7 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
             config.timers,
             Box::new(move |_, msg| {
                 if let Err(error) = dispatch_notification(config.clone().notifications, msg) {
-                    warn!("{}", error);
+                    error!("{}", error);
                 };
             }),
             Box::new(move |view_state| {
@@ -114,7 +117,7 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
         tokio::spawn(async move {
             info!("New connection received.");
             if let Err(error) = handle_conn(connection, input_tx, output_rx).await {
-                panic!("Could not handle connection: {}", error);
+                error!("Could not handle connection: {}", error);
             };
         });
     }

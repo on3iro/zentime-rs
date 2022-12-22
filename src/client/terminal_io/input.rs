@@ -42,7 +42,7 @@ impl TerminalInputTask {
                 let result = stream.next().await;
                 if let Some(Ok(event)) = result {
                     if let Err(error) = input_worker_tx.send(handle_input(event)) {
-                        // TODO handle this more gracefully
+                        // TODO: handle this more gracefully
                         panic!("Could not send ClientInputAction: {}", error)
                     };
                 }
