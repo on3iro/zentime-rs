@@ -38,14 +38,14 @@ A simple terminal based pomodoro/productivity timer written in Rust.
 
 ### Homebrew
 
-```
+```ignore
 brew tap install on3iro/zentime
 brew install zentime
 ```
 
 ### Cargo
 
-```
+```ignore
 cargo install zentime-rs
 ```
 
@@ -78,13 +78,13 @@ Here's an overview of [available log levels](https://docs.rs/log/0.4.17/log/enum
 To display the current timer state inside the tmux status bar you could use `zentime once` which will be queried by tmux on each status bar update.
 Simply add the following snippet to your `.tmux.conf`:
 
-```conf
+```conf ignore
 set -g status-left " #(zentime once) "
 ```
 
 If you would like to add shortcuts (e.g. to toggle pause/play) from inside tmux you could add bindings like this:
 
-```conf
+```conf ignore
 bind t run-shell "zentime toggle-timer > /dev/null"
 bind y run-shell "zentime skip > /dev/null"
 ```
