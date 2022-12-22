@@ -12,7 +12,7 @@ pub fn dispatch_notification(
     notification_string: &str,
 ) -> anyhow::Result<()> {
     if config.enable_bell {
-        play(config.sound_file, config.volume);
+        play(config.sound_file, config.volume)?;
     }
 
     if config.show_notification {
