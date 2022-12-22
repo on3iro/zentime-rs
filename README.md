@@ -14,7 +14,9 @@
         - [Cargo](#cargo)
         - [Nix](#nix)
     - [Configuration](#configuration)
+    - [Logs](#logs)
     - [Tmux integration example](#tmux-integration-example)
+    - [Usage as library](#usage-as-library)
 
 A simple terminal based pomodoro/productivity timer written in Rust.
 
@@ -86,3 +88,12 @@ If you would like to add shortcuts (e.g. to toggle pause/play) from inside tmux 
 bind t run-shell "zentime toggle-timer > /dev/null"
 bind y run-shell "zentime skip > /dev/null"
 ```
+
+## Usage as library
+
+Zentime is built in such a way, that it should be possible to build custom clients etc. to attach to the server.
+To do so one should use the modules provided by the [library crate](https://docs.rs/zentime-rs/latest/zentime_rs).
+More documentation/examples on how to use these, will follow soon.
+
+> NOTE: The API of the library crate is not yet stable and might change on minor version updates.
+> As soon as this crate reaches 1.0.0 status, breaking changes will only ever happen on major versions.
