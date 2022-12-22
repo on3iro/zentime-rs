@@ -1,5 +1,7 @@
-[![Release](https://github.com/on3iro/zentime-rs/actions/workflows/release.yaml/badge.svg)](https://github.com/on3iro/zentime-rs/actions/workflows/release.yaml)
-[![docs.rs](https://img.shields.io/docsrs/zentime-rs/latest?label=docs)](https://docs.rs/zentime-rs/latest/zentime_rs/)
+[<img alt="Build" src="https://img.shields.io/github/actions/workflow/status/on3iro/zentime-rs/release.yaml?style=for-the-badge" height="20">](https://github.com/on3iro/zentime-rs/actions/workflows/release.yaml)
+[<img alt="crates.io" src="https://img.shields.io/crates/v/zentime-rs.svg?style=for-the-badge&color=fc8d62&logo=rust" height="20">](https://crates.io/crates/zentime-rs)
+[<img alt="docs.rs" src="https://img.shields.io/docsrs/zentime-rs/latest?style=for-the-badge&logo=docs.rs" height="20">](https://docs.rs/zentime-rs/latest/zentime_rs/)
+
 
 
 # TOC
