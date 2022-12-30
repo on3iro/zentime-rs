@@ -11,4 +11,7 @@ pub enum TimerInputAction {
 
     /// Skip to the next timer (break or focus)
     Skip,
+
+    /// Reset timer
+    ResetTimer,
 }
