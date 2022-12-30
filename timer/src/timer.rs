@@ -140,6 +140,10 @@ impl<S: TimerState> Timer<S> {
         new_timer.init();
     }
 
+    fn reset(self) -> Timer<Paused> {
+        Timer::new(self.config, self.on_interval_end, self.on_tick)
+    }
+
     /// Creates a new break timer whose length will either be that of a
     /// [TimerConfig::minor_break] or [TimerConfig::major_break]
     fn new_break_timer(self, is_major_break: bool) -> Timer<Paused> {
@@ -221,6 +225,7 @@ impl Timer<Paused> {
                     }
 
                     TimerInputAction::None => {}
+                    TimerInputAction::ResetTimer => return self.reset().init(),
                 }
             }
         }
@@ -276,6 +281,7 @@ impl Timer<Running> {
                         return self.next(false);
                     }
                     TimerInputAction::None => {}
+                    TimerInputAction::ResetTimer => return self.reset().init(),
                 }
             }
         }

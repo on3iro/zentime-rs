@@ -38,4 +38,4 @@ thiserror = "1.0"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
 tui = "0.19.0"
-zentime-rs-timer = { path = "./timer", version = "0.8" }
+zentime-rs-timer = { path = "./timer", version = "0.9" }
