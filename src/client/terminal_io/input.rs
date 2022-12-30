@@ -25,6 +25,9 @@ pub enum ClientInputAction {
 
     /// Skip to the next timer (break or focus)
     Skip,
+
+    /// Resets the timer back to the first interval
+    Reset,
 }
 
 /// Tokio task handling terminal input events
@@ -88,6 +91,13 @@ fn handle_input(event: Event) -> ClientInputAction {
                 ..
             } => {
                 return ClientInputAction::Skip;
+            }
+
+            KeyEvent {
+                code: KeyCode::Char('r'),
+                ..
+            } => {
+                return ClientInputAction::Reset;
             }
 
             _ => {}

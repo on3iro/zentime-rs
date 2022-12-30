@@ -7,6 +7,7 @@ mod subcommands;
 use serde::{Deserialize, Serialize};
 use subcommands::{
     query_server_once::query_server_once,
+    reset_timer::reset_timer,
     server::{start_daemonized, status, stop},
     skip_timer::skip_timer,
     toggle_timer::toggle_timer,
@@ -138,6 +139,9 @@ enum Commands {
     /// Skips to next timer interval
     Skip,
 
+    /// Resets the timer to the first interval
+    Reset,
+
     /// Interact with the zentime server
     Server {
         #[command(subcommand)]
@@ -183,6 +187,10 @@ fn main() {
 
         Some(Commands::Skip) => {
             skip_timer();
+        }
+
+        Some(Commands::Reset) => {
+            reset_timer();
         }
 
         None => default_cmd(&cli.common_args, &cli.client_config),
