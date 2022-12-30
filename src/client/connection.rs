@@ -152,6 +152,13 @@ async fn handle_client_input_action(
                 .await
                 .context("Could not send IPC message")?;
         }
+
+        ClientInputAction::Reset => {
+            let msg = ClientToServerMsg::Reset;
+            InterProcessCommunication::send_ipc_message(msg, writer)
+                .await
+                .context("Could not send IPC message")?;
+        }
     }
 
     Ok(())

@@ -183,6 +183,12 @@ async fn handle_client_to_server_msg(
             std::process::exit(0);
         }
 
+        ClientToServerMsg::Reset => {
+            timer_input_sender
+                .send(TimerInputAction::ResetTimer)
+                .context("Could not send ResetTimer to timer")?;
+        }
+
         // Play/Pause the timer
         ClientToServerMsg::PlayPause => {
             timer_input_sender
