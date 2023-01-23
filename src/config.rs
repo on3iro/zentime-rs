@@ -25,6 +25,10 @@ pub struct NotificationConfig {
 
     /// Show OS-notification
     pub show_notification: bool,
+
+    /// A random suggestion will be picked on each break and shown inside the
+    /// notification text.
+    pub break_suggestions: Option<Vec<String>>,
 }
 
 impl Default for NotificationConfig {
@@ -34,6 +38,7 @@ impl Default for NotificationConfig {
             sound_file: None,
             enable_bell: true,
             show_notification: true,
+            break_suggestions: None,
         }
     }
 }
