@@ -5,6 +5,8 @@ use crate::config::NotificationConfig;
 use anyhow::bail;
 use log::error;
 use notify_rust::{Notification, NotificationHandle};
+use rand::{seq::SliceRandom, thread_rng};
+use std::fmt::Write;
 use thiserror::Error;
 
 /// Something went wrong during notification dispatch
@@ -32,7 +34,25 @@ pub fn dispatch_notification(
     }
 
     if config.show_notification {
-        send(notification_string)?;
+        let suggestions = match config.break_suggestions {
+            Some(suggestions) => suggestions,
+            None => vec![],
+        };
+
+        let random_suggestion = suggestions.choose(&mut thread_rng());
+
+        let mut notification = notification_string.to_string();
+
+        if let Some(suggestion) = random_suggestion {
+            if let Err(error) = write!(notification, "\n\n{}", suggestion) {
+                error!("Could not concatenate random suggestion to notification message");
+                return Err(NotificationDispatchError::OperatingSystemNotification(
+                    anyhow::Error::new(error),
+                ));
+            };
+        }
+
+        send(&notification)?;
     }
 
     Ok(())
