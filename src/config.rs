@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use zentime_rs_timer::config::TimerConfig;
+use zentime_rs_timer::config::PomodoroTimerConfig;
 
 use figment::{
     providers::{Format, Serialized, Toml},
@@ -65,7 +65,7 @@ pub struct Config {
     pub view: ViewConfig,
 
     /// Configuration of the timer itself
-    pub timers: TimerConfig,
+    pub timers: PomodoroTimerConfig,
 
     /// Configuration for OS notifications
     pub notifications: NotificationConfig,

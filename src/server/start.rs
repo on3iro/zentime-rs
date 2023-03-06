@@ -9,7 +9,10 @@ use crossbeam::channel::{unbounded, Sender};
 use interprocess::local_socket::tokio::OwnedWriteHalf;
 use log::{error, info};
 use tokio::task::{spawn_blocking, yield_now};
+use zentime_rs_timer::pomodoro_timer::PomodoroTimer;
+use zentime_rs_timer::pomodoro_timer_action::PomodoroTimerAction;
 
+use std::rc::Rc;
 use std::sync::Arc;
 use tokio::select;
 use tokio::sync::{self, broadcast::Receiver as BroadcastReceiver};
@@ -20,7 +23,6 @@ use interprocess::local_socket::tokio::{LocalSocketListener, LocalSocketStream};
 use std::time::Duration;
 use tokio::fs::{metadata, remove_file};
 
-use zentime_rs_timer::{Timer, TimerInputAction};
 
 use super::status::{server_status, ServerStatus};
 
@@ -80,21 +82,21 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
     spawn_blocking(move || {
         info!("Starting timer...");
 
-        Timer::new(
+        PomodoroTimer::new(
             config.timers,
-            Box::new(move |_, msg| {
+            Rc::new(move |_, msg| {
                 if let Err(error) = dispatch_notification(config.clone().notifications, msg) {
                     error!("{}", error);
                 };
             }),
-            Box::new(move |view_state| {
+            Rc::new(move |view_state| {
                 // Update the view
                 timer_out_tx.send(TimerOutputAction::Timer(view_state)).ok();
 
                 // Handle app actions and hand them to the timer caller
                 match timer_input_receiver.recv_timeout(Duration::from_millis(100)) {
                     Ok(action) => Some(action),
-                    _ => Some(TimerInputAction::None),
+                    _ => Some(PomodoroTimerAction::None),
                 }
             }),
         )
@@ -128,7 +130,7 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
 /// [ClientToServerMsg]s.
 async fn handle_conn(
     conn: LocalSocketStream,
-    timer_input_sender: Sender<TimerInputAction>,
+    timer_input_sender: Sender<PomodoroTimerAction>,
     mut timer_output_receiver: BroadcastReceiver<TimerOutputAction>,
 ) -> anyhow::Result<()> {
     // Split the connection into two halves to process
@@ -166,7 +168,7 @@ enum CloseConnection {
 
 async fn handle_client_to_server_msg(
     msg: ClientToServerMsg,
-    timer_input_sender: &Sender<TimerInputAction>,
+    timer_input_sender: &Sender<PomodoroTimerAction>,
 ) -> anyhow::Result<CloseConnection> {
     match msg {
         // Shutdown server
@@ -185,21 +187,21 @@ async fn handle_client_to_server_msg(
 
         ClientToServerMsg::Reset => {
             timer_input_sender
-                .send(TimerInputAction::ResetTimer)
+                .send(PomodoroTimerAction::ResetTimer)
                 .context("Could not send ResetTimer to timer")?;
         }
 
         // Play/Pause the timer
         ClientToServerMsg::PlayPause => {
             timer_input_sender
-                .send(TimerInputAction::PlayPause)
+                .send(PomodoroTimerAction::PlayPause)
                 .context("Could not send Play/Pause to timer")?;
         }
 
         // Skip to next timer interval
         ClientToServerMsg::Skip => {
             timer_input_sender
-                .send(TimerInputAction::Skip)
+                .send(PomodoroTimerAction::Skip)
                 .context("Could not send Skip to timer")?;
         }
 

@@ -1,5 +1,5 @@
 use anyhow::Context;
-use zentime_rs_timer::timer::ViewState;
+use zentime_rs_timer::pomodoro_timer::ViewState;
 
 use std::io::Stdout;
 use tui::{

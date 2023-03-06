@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 /// Timer configuration which determines certain aspects of the timer,
 /// like the duration of `intervals` and break lengths.
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-pub struct TimerConfig {
+pub struct PomodoroTimerConfig {
     /// Timer in seconds
     pub timer: u64,
 
@@ -18,9 +18,9 @@ pub struct TimerConfig {
     pub intervals: u64,
 }
 
-impl Default for TimerConfig {
+impl Default for PomodoroTimerConfig {
     fn default() -> Self {
-        TimerConfig {
+        PomodoroTimerConfig {
             timer: 1500,
             minor_break: 300,
             major_break: 900,
