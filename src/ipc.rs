@@ -6,8 +6,8 @@ use futures::{AsyncReadExt, AsyncWriteExt};
 use interprocess::local_socket::tokio::{OwnedReadHalf, OwnedWriteHalf};
 use interprocess::local_socket::NameTypeSupport;
 use serde::{Deserialize, Serialize};
+use zentime_rs_timer::pomodoro_timer::ViewState;
 use std::fmt::Debug;
-use zentime_rs_timer::timer::ViewState;
 
 const DEFAULT_SOCKET_PATH: &str = "/tmp/zentime.sock";
 const DEFAULT_SOCKET_NAMESPACE: &str = "@zentime.sock";

@@ -1,29 +1,30 @@
+use std::rc::Rc;
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::Duration;
-use zentime_rs_timer::config::TimerConfig;
-use zentime_rs_timer::timer::{Timer, ViewState};
-use zentime_rs_timer::TimerInputAction;
+use zentime_rs_timer::config::PomodoroTimerConfig;
+use zentime_rs_timer::pomodoro_timer::{PomodoroTimer, ViewState};
+use zentime_rs_timer::pomodoro_timer_action::PomodoroTimerAction;
 
 fn main() {
     let (terminal_input_sender, terminal_input_receiver): (
-        Sender<TimerInputAction>,
-        Receiver<TimerInputAction>,
+        Sender<PomodoroTimerAction>,
+        Receiver<PomodoroTimerAction>,
     ) = mpsc::channel();
     let (view_sender, view_receiver): (Sender<ViewState>, Receiver<ViewState>) = mpsc::channel();
 
-    let config = TimerConfig::default();
+    let config = PomodoroTimerConfig::default();
 
     // Run timer in its own thread so it does not block the current one
     thread::spawn(move || {
-        let timer = Timer::new(
+        let timer = PomodoroTimer::new(
             config,
-            Box::new(move |state, msg| {
+            Rc::new(move |state, msg| {
                 println!("{} {}", state.round, msg);
             }),
-            Box::new(move |view_state| -> Option<TimerInputAction> {
-                view_sender.send(view_state).unwrap();
+            Rc::new(move |state| -> Option<PomodoroTimerAction> {
+                view_sender.send(state).unwrap();
 
                 let input = terminal_input_receiver.recv_timeout(Duration::from_secs(1));
 
@@ -41,7 +42,7 @@ fn main() {
     let action_jh = thread::spawn(move || {
         // Start the timer
         terminal_input_sender
-            .send(TimerInputAction::PlayPause)
+            .send(PomodoroTimerAction::PlayPause)
             .unwrap();
 
         // Render current timer state three seconds in a row
@@ -54,7 +55,7 @@ fn main() {
 
         // Pause the timer
         terminal_input_sender
-            .send(TimerInputAction::PlayPause)
+            .send(PomodoroTimerAction::PlayPause)
             .unwrap();
         let state = view_receiver.recv().unwrap();
 
@@ -75,7 +76,7 @@ fn main() {
 
         // Start the timer again
         terminal_input_sender
-            .send(TimerInputAction::PlayPause)
+            .send(PomodoroTimerAction::PlayPause)
             .unwrap();
 
         // Render current timer state three seconds in a row

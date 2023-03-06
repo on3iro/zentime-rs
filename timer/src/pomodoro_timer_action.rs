@@ -2,11 +2,19 @@
 
 /// Various control actions to transition into new states
 #[derive(Debug, Copy, Clone)]
-pub enum TimerAction {
+pub enum PomodoroTimerAction {
+    /// NoOp
+    None,
+
     /// Either start or pause the current timer
     PlayPause,
 
-    /// Ends the currently blocking timer loop, such that the consuming code
-    /// is able to continue
-    End,
+    /// Skip to the next timer (break or focus)
+    Skip,
+
+    /// Reset timer
+    ResetTimer,
+
+    /// Postpone a break
+    PostponeBreak,
 }

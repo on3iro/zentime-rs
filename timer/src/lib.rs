@@ -13,26 +13,27 @@
 //! use std::sync::mpsc::{self, RecvTimeoutError};
 //! use std::sync::mpsc::{Receiver, Sender};
 //! use std::thread;
+//! use std::rc::Rc;
 //! use std::time::Duration;
-//! use zentime_rs_timer::config::TimerConfig;
-//! use zentime_rs_timer::timer_action::TimerInputAction;
-//! use zentime_rs_timer::timer::{ Timer, ViewState };
+//! use zentime_rs_timer::config::PomodoroTimerConfig;
+//! use zentime_rs_timer::pomodoro_timer_action::PomodoroTimerAction;
+//! use zentime_rs_timer::pomodoro_timer::{ PomodoroTimer, ViewState };
 //!
-//!     let (terminal_input_sender, terminal_input_receiver): (Sender<TimerInputAction>, Receiver<TimerInputAction>) =
+//!     let (terminal_input_sender, terminal_input_receiver): (Sender<PomodoroTimerAction>, Receiver<PomodoroTimerAction>) =
 //!         mpsc::channel();
 //!     let (view_sender, view_receiver): (Sender<ViewState>, Receiver<ViewState>) =
 //!         mpsc::channel();
 //!
-//!     let config = TimerConfig::default();
+//!     let config = PomodoroTimerConfig::default();
 //!
 //!     // Run timer in its own thread so it does not block the current one
 //!     thread::spawn(move || {
-//!         let timer = Timer::new(
+//!         let timer = PomodoroTimer::new(
 //!             config,
-//!             Box::new(move |state, msg| {
+//!             Rc::new(move |state, msg| {
 //!                 println!("{} {}", state.round, msg);
 //!             }),
-//!             Box::new(move |view_state| -> Option<TimerInputAction> {
+//!             Rc::new(move |view_state| -> Option<PomodoroTimerAction> {
 //!                 view_sender.send(view_state).unwrap();
 //!
 //!                 let input = terminal_input_receiver.recv_timeout(Duration::from_millis(100));
@@ -50,7 +51,7 @@
 //!
 //!     let action_jh = thread::spawn(move || {
 //!         // Start the timer
-//!         terminal_input_sender.send(TimerInputAction::PlayPause).unwrap();
+//!         terminal_input_sender.send(PomodoroTimerAction::PlayPause).unwrap();
 //!
 //!         // Render current timer state three seconds in a row
 //!         for _ in 0..3 {
@@ -67,9 +68,11 @@
 //! ```
 
 pub use timer::Timer;
-pub use timer_action::TimerInputAction;
+pub use timer_action::TimerAction;
 
 pub mod config;
+pub mod pomodoro_timer;
+pub mod pomodoro_timer_action;
 pub mod timer;
 pub mod timer_action;
 pub mod util;

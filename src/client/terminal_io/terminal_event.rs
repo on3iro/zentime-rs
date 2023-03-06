@@ -1,6 +1,6 @@
 //! Terminal event handled by a client
 
-use zentime_rs_timer::timer::ViewState;
+use zentime_rs_timer::pomodoro_timer::ViewState;
 
 /// Describes a message passed from a connection to the [TerminalOutputTask]
 #[derive(Debug)]

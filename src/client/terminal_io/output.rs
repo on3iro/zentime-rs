@@ -7,13 +7,13 @@ use crossterm::style::Stylize;
 use crossterm::terminal::{enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{cursor::Show, event::DisableMouseCapture, execute, terminal::disable_raw_mode};
 use futures::lock::Mutex;
+use zentime_rs_timer::pomodoro_timer::ViewState;
 use std::io::Write;
 use std::sync::Arc;
 use std::{io::Stdout, process};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::{spawn, JoinHandle};
 use tui::{backend::CrosstermBackend, Terminal as TuiTerminal};
-use zentime_rs_timer::timer::ViewState;
 
 use super::terminal_event::TerminalEvent;
 
