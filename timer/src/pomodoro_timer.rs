@@ -33,14 +33,19 @@ pub struct LongBreak {}
 #[derive(Debug, Copy, Clone)]
 pub struct Interval {}
 
-/// Pomodoro timer state designating a postponed break
+/// Pomodoro timer state designating a postponed long break
 #[derive(Debug, Copy, Clone)]
-pub struct Postponed {}
+pub struct PostponedLongBreak {}
+
+/// Pomodoro timer state designating a postponed short break
+#[derive(Debug, Copy, Clone)]
+pub struct PostponedShortBreak {}
 
 impl PomodoroState for ShortBreak {}
 impl PomodoroState for LongBreak {}
 impl PomodoroState for Interval {}
-impl PomodoroState for Postponed {}
+impl PomodoroState for PostponedLongBreak {}
+impl PomodoroState for PostponedShortBreak {}
 
 /// State which is shared between timers when they transition from one timer state to the
 /// next. Some of its information is also being shared with the [OnTick] closure.
@@ -104,6 +109,10 @@ impl<S: PomodoroState + std::fmt::Debug> Debug for PomodoroTimer<S> {
 impl<S: PomodoroState> PomodoroTimer<S> {
     fn reset(config: PomodoroTimerConfig, callbacks: Callbacks) -> PomodoroTimer<Interval> {
         PomodoroTimer::new(config, callbacks.on_timer_end, callbacks.on_tick)
+    }
+
+    fn can_postpone(config: PomodoroTimerConfig, state: PomodoroTimerState) -> bool {
+        config.postpone_limit > 0 && state.postponed_count < config.postpone_limit
     }
 
     fn handle_action(
@@ -192,9 +201,14 @@ impl PomodoroTimer<Interval> {
         shared_state: PomodoroTimerState,
         is_major_break: bool,
     ) {
+        let state = PomodoroTimerState {
+            postponed_count: 0,
+            ..shared_state
+        };
+
         if is_major_break {
             PomodoroTimer {
-                shared_state,
+                shared_state: state,
                 config,
                 callbacks,
                 marker: PhantomData::<LongBreak>,
@@ -202,7 +216,7 @@ impl PomodoroTimer<Interval> {
             .init()
         } else {
             PomodoroTimer {
-                shared_state,
+                shared_state: state,
                 config,
                 callbacks,
                 marker: PhantomData::<ShortBreak>,
@@ -236,6 +250,21 @@ impl PomodoroTimer<ShortBreak> {
                     round: self.shared_state.round,
                     time: current_time.to_string(),
                 }) {
+                    if let PomodoroTimerAction::PostponeBreak = action {
+                        if !Self::can_postpone(self.config, self.shared_state) {
+                            return None;
+                        }
+
+                        let state = PomodoroTimerState {
+                            postponed_count: self.shared_state.postponed_count + 1,
+                            ..self.shared_state
+                        };
+
+                        Self::postpone(self.config, on_tick_callbacks.clone(), state);
+
+                        return None;
+                    }
+
                     Self::handle_action(action, self.config, on_tick_callbacks.clone())
                 } else {
                     None
@@ -247,9 +276,18 @@ impl PomodoroTimer<ShortBreak> {
         Self::next(self.config, self.callbacks, next_shared_state)
     }
 
-    fn postpone(mut self) {
-        // Move to postponed state
-        todo!()
+    fn postpone(
+        config: PomodoroTimerConfig,
+        callbacks: Callbacks,
+        shared_state: PomodoroTimerState,
+    ) {
+        PomodoroTimer {
+            shared_state,
+            config,
+            callbacks,
+            marker: PhantomData::<PostponedShortBreak>,
+        }
+        .init();
     }
 
     fn next(config: PomodoroTimerConfig, callbacks: Callbacks, shared_state: PomodoroTimerState) {
@@ -287,6 +325,21 @@ impl PomodoroTimer<LongBreak> {
                     round: self.shared_state.round,
                     time: current_time.to_string(),
                 }) {
+                    if let PomodoroTimerAction::PostponeBreak = action {
+                        if !Self::can_postpone(self.config, self.shared_state) {
+                            return None;
+                        }
+
+                        let state = PomodoroTimerState {
+                            postponed_count: self.shared_state.postponed_count + 1,
+                            ..self.shared_state
+                        };
+
+                        Self::postpone(self.config, on_tick_callbacks.clone(), state);
+
+                        return None;
+                    }
+
                     Self::handle_action(action, self.config, on_tick_callbacks.clone())
                 } else {
                     None
@@ -298,9 +351,18 @@ impl PomodoroTimer<LongBreak> {
         Self::next(self.config, self.callbacks, next_shared_state)
     }
 
-    fn postpone(self) {
-        // Move to postponed state
-        todo!()
+    fn postpone(
+        config: PomodoroTimerConfig,
+        callbacks: Callbacks,
+        shared_state: PomodoroTimerState,
+    ) {
+        PomodoroTimer {
+            shared_state,
+            config,
+            callbacks,
+            marker: PhantomData::<PostponedLongBreak>,
+        }
+        .init();
     }
 
     fn next(config: PomodoroTimerConfig, callbacks: Callbacks, shared_state: PomodoroTimerState) {
@@ -314,12 +376,76 @@ impl PomodoroTimer<LongBreak> {
     }
 }
 
-impl PomodoroTimer<Postponed> {
+impl PomodoroTimer<PostponedLongBreak> {
     fn init(self) {
-        todo!()
+        let on_tick_callbacks = self.callbacks.clone();
+
+        Timer::new(
+            self.config.postpone_timer,
+            Box::new(move || {}),
+            Box::new(move |current_time| {
+                if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
+                    is_break: false,
+                    is_postponed: true,
+                    postpone_count: self.shared_state.postponed_count,
+                    round: self.shared_state.round,
+                    time: current_time.to_string(),
+                }) {
+                    Self::handle_action(action, self.config, on_tick_callbacks.clone())
+                } else {
+                    None
+                }
+            }),
+        )
+        .init();
+
+        Self::next(self.config, self.callbacks, self.shared_state)
     }
 
-    fn next(self) {
-        todo!()
+    fn next(config: PomodoroTimerConfig, callbacks: Callbacks, shared_state: PomodoroTimerState) {
+        PomodoroTimer {
+            shared_state,
+            config,
+            callbacks,
+            marker: PhantomData::<LongBreak>,
+        }
+        .init();
+    }
+}
+
+impl PomodoroTimer<PostponedShortBreak> {
+    fn init(self) {
+        let on_tick_callbacks = self.callbacks.clone();
+
+        Timer::new(
+            self.config.postpone_timer,
+            Box::new(move || {}),
+            Box::new(move |current_time| {
+                if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
+                    is_break: false,
+                    is_postponed: true,
+                    postpone_count: self.shared_state.postponed_count,
+                    round: self.shared_state.round,
+                    time: current_time.to_string(),
+                }) {
+                    Self::handle_action(action, self.config, on_tick_callbacks.clone())
+                } else {
+                    None
+                }
+            }),
+        )
+        .init();
+
+        Self::next(self.config, self.callbacks, self.shared_state)
+    }
+
+    fn next(config: PomodoroTimerConfig, callbacks: Callbacks, shared_state: PomodoroTimerState) {
+        PomodoroTimer {
+            shared_state,
+            config,
+            callbacks,
+            marker: PhantomData::<ShortBreak>,
+        }
+        .init();
     }
 }

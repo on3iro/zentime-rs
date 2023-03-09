@@ -16,6 +16,14 @@ pub struct PomodoroTimerConfig {
 
     /// Intervals before major break
     pub intervals: u64,
+
+    /// Determines how often a break may be postponed.
+    /// A value of 0 denotes, that postponing breaks is not allowed and the feature is
+    /// disabled.
+    pub postpone_limit: u16,
+
+    /// Determines how long each postpone timer runs (in seconds)
+    pub postpone_timer: u64,
 }
 
 impl Default for PomodoroTimerConfig {
@@ -25,6 +33,8 @@ impl Default for PomodoroTimerConfig {
             minor_break: 300,
             major_break: 900,
             intervals: 4,
+            postpone_limit: 0,
+            postpone_timer: 300,
         }
     }
 }

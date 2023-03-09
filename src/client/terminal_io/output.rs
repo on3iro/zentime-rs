@@ -123,11 +123,33 @@ impl TerminalOut for MinimalInterface {
     fn render(&mut self, state: ViewState) -> anyhow::Result<()> {
         let timer = format!(" {} ", state.time.white());
         let round = format!("Round: {}", state.round);
+        let timer_kind = format!(
+            "{}",
+            if state.is_break {
+                "Break"
+            } else if state.is_postponed {
+                "Postpone"
+            } else {
+                "Focus"
+            },
+        );
+
+        let postponed_count = if state.is_postponed {
+            format!(" ({})", state.postpone_count)
+        } else {
+            // WHY:
+            // Because we use \r on the `print`-call below we need to overwrite
+            // enough characters with whitespace, such that they no longer appear
+            // if the result string is shorter than before
+            format!("                            ")
+        };
+
         print!(
-            "\r{} {} {}",
+            "\r{} {} {}{}",
             timer.on_dark_red(),
             round.green(),
-            if state.is_break { "Break" } else { "Focus" }
+            timer_kind,
+            postponed_count
         );
 
         Ok(std::io::stdout().flush()?)

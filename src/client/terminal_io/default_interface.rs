@@ -22,10 +22,10 @@ pub fn render(
             let layout = layout(rect);
 
             // Rendered at the bottom
-            let key_tabs = key_binding_info();
+            let key_tabs = key_binding_info(timer_state.is_break);
             frame.render_widget(key_tabs, layout[1]);
 
-            // Top layou
+            // Top layout
             let inner_layout = inner_layout(layout[0]);
 
             // Rendered to the left
@@ -83,8 +83,15 @@ fn inner_layout(rect: Rect) -> Vec<Rect> {
 /// ┌─────────────────────────────────────────────────────────┐
 /// │ [Q]uit │ [D]etach │ [S]kip │ Space: Play/Pause          │
 /// └─────────────────────────────────────────────────────────┘
-fn key_binding_info() -> Tabs<'static> {
-    let keybindings = vec!["[Q]uit", "[D]etach", "[S]kip", "Space: Play/Pause"];
+fn key_binding_info(is_break: bool) -> Tabs<'static> {
+    let keybindings = vec![
+        "[Q]uit",
+        "[D]etach",
+        "[S]kip",
+        if is_break { "[P]ostpone" } else { "" },
+        "Space: Play/Pause",
+    ];
+
     let keybinding_spans = keybindings
         .iter()
         .map(|key| {
@@ -103,16 +110,27 @@ fn key_binding_info() -> Tabs<'static> {
 }
 
 /// Timer information of the default interface (interval/round number, break/focus)
-fn timer_info(timer_state: &ViewState) -> Paragraph {
-    let rounds = format!("Round: {}", timer_state.round);
-    let work_or_break = if timer_state.is_break {
+fn timer_info(state: &ViewState) -> Paragraph {
+    let rounds = format!("Round: {}", state.round);
+    let timer_kind = if state.is_break {
         "Break"
+    } else if state.is_postponed {
+        "Postpone"
     } else {
         "Focus"
     };
 
+    let postponed_count = if state.is_break || state.is_postponed {
+        format!(" ({})", state.postpone_count)
+    } else {
+        "".to_string()
+    };
+
     let info_text = vec![
-        Spans::from(Span::styled(work_or_break, Style::default().fg(Color::Red))),
+        Spans::from(Span::styled(
+            format!("{}{}", timer_kind, postponed_count),
+            Style::default().fg(Color::Red),
+        )),
         Spans::from(vec![Span::styled(rounds, Style::default().fg(Color::Gray))]),
     ];
 

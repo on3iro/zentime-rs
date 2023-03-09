@@ -205,6 +205,13 @@ async fn handle_client_to_server_msg(
                 .context("Could not send Skip to timer")?;
         }
 
+        // Try to postpone the current break (limited by pomodoro timer config and state)
+        ClientToServerMsg::PostPone => {
+            timer_input_sender
+                .send(PomodoroTimerAction::PostponeBreak)
+                .context("Could not send Skip to timer")?;
+        }
+
         // Close connection, because client has detached
         ClientToServerMsg::Detach => {
             info!("Client detached.");

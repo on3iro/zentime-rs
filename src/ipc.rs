@@ -64,6 +64,9 @@ pub enum ClientToServerMsg {
     /// For one-shot zentime commands we therefore use this sync msg to synchronize
     /// with the server.
     Sync,
+
+    /// Command the server to postpone the current break, if possible
+    PostPone,
 }
 
 /// Service handling communication between processes over the zentime socket.
