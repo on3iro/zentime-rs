@@ -134,6 +134,15 @@ async fn handle_client_input_action(
                 .context("Could not send to terminal out")?;
         }
 
+        // Postpone the current break, if possible (validation happens inside the
+        // [PomodoroTimer] run by the server itself)
+        ClientInputAction::PostPone => {
+            let msg = ClientToServerMsg::PostPone;
+            InterProcessCommunication::send_ipc_message(msg, writer)
+                .await
+                .context("Could not send IPC message")?;
+        }
+
         // NoOp
         ClientInputAction::None => return Ok(()),
 

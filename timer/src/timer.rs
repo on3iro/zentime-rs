@@ -124,6 +124,8 @@ impl Timer<Paused> {
                         break;
                     }
 
+                    // Returns from the blocking loop, so that the calling code
+                    // can resume execution
                     TimerAction::End => return,
                 }
             }
@@ -171,6 +173,8 @@ impl Timer<Running> {
                         return self.pause();
                     }
 
+                    // Returns from the blocking loop, so that the calling code
+                    // can resume execution
                     TimerAction::End => return,
                 }
             }

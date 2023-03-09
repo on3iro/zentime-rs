@@ -63,6 +63,16 @@ fn get_server_args(common_args: &CommonArgs) -> Vec<String> {
         common_args.config.to_string(),
     ];
 
+    if let Some(postpone_limit) = &common_args.server_config.timers.postpone_limit {
+        args.push("--postpone-limit".to_string());
+        args.push(postpone_limit.to_string());
+    }
+
+    if let Some(postpone_timer) = &common_args.server_config.timers.postpone_timer {
+        args.push("--postpone-timer".to_string());
+        args.push(postpone_timer.to_string());
+    }
+
     if let Some(enable_bell) = &common_args.server_config.notifications.enable_bell {
         args.push("--enable-bell".to_string());
         args.push(enable_bell.to_string());

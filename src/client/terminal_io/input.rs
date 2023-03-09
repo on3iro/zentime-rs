@@ -28,6 +28,9 @@ pub enum ClientInputAction {
 
     /// Resets the timer back to the first interval
     Reset,
+
+    /// Postpones the current break, if possible (see [PomodoroTimerConfig])
+    PostPone,
 }
 
 /// Tokio task handling terminal input events
@@ -91,6 +94,13 @@ fn handle_input(event: Event) -> ClientInputAction {
                 ..
             } => {
                 return ClientInputAction::Skip;
+            }
+
+            KeyEvent {
+                code: KeyCode::Char('p'),
+                ..
+            } => {
+                return ClientInputAction::PostPone
             }
 
             KeyEvent {

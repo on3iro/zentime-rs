@@ -75,6 +75,18 @@ struct ClapTimerConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[arg(long)]
     pub intervals: Option<u64>,
+
+    /// Determines how often a break may be postponed.
+    /// A value of 0 denotes, that postponing breaks is not allowed and the feature is
+    /// disabled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[arg(long)]
+    pub postpone_limit: Option<u16>,
+
+    /// Determines how long each postpone timer runs (in seconds)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[arg(long)]
+    pub postpone_timer: Option<u64>,
 }
 
 #[derive(clap::Args, Serialize, Deserialize, Clone, Debug)]
