@@ -379,10 +379,11 @@ impl PomodoroTimer<LongBreak> {
 impl PomodoroTimer<PostponedLongBreak> {
     fn init(self) {
         let on_tick_callbacks = self.callbacks.clone();
+        let on_end = self.callbacks.on_timer_end.clone();
 
         Timer::new(
             self.config.postpone_timer,
-            Box::new(move || {}),
+            Box::new(move || (on_end)(self.shared_state, "Postpone done - back to break")),
             Box::new(move |current_time| {
                 if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
                     is_break: false,
@@ -416,10 +417,11 @@ impl PomodoroTimer<PostponedLongBreak> {
 impl PomodoroTimer<PostponedShortBreak> {
     fn init(self) {
         let on_tick_callbacks = self.callbacks.clone();
+        let on_end = self.callbacks.on_timer_end.clone();
 
         Timer::new(
             self.config.postpone_timer,
-            Box::new(move || {}),
+            Box::new(move || (on_end)(self.shared_state, "Postpone done - back to break")),
             Box::new(move |current_time| {
                 if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
                     is_break: false,
