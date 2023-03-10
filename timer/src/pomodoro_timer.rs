@@ -161,27 +161,31 @@ impl PomodoroTimer<Interval> {
     /// The internal [Timer] will be initialized in a paused state, waiting for
     /// a [TimerAction:PlayPause]-action (triggered in turn by a [PomodoroTimerAction::PlayPause])
     pub fn init(self) {
-        let on_tick_callbacks = self.callbacks.clone();
-        let on_timer_end = self.callbacks.on_timer_end.clone();
         let is_major_break = &self.shared_state.round % self.config.intervals == 0;
 
         Timer::new(
             self.config.timer,
-            Box::new(move || {
-                let state = self.shared_state.clone();
-                (on_timer_end)(state, "Good job, take a break!");
+            Box::new({
+                let on_timer_end = self.callbacks.on_timer_end.clone();
+                move || {
+                    let state = self.shared_state.clone();
+                    (on_timer_end)(state, "Good job, take a break!");
+                }
             }),
-            Box::new(move |current_time| {
-                if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
-                    is_break: false,
-                    is_postponed: false,
-                    postpone_count: self.shared_state.postponed_count,
-                    round: self.shared_state.round,
-                    time: current_time.to_string(),
-                }) {
-                    Self::handle_action(action, self.config, on_tick_callbacks.clone())
-                } else {
-                    None
+            Box::new({
+                let on_tick_callbacks = self.callbacks.clone();
+                move |current_time| {
+                    if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
+                        is_break: false,
+                        is_postponed: false,
+                        postpone_count: self.shared_state.postponed_count,
+                        round: self.shared_state.round,
+                        time: current_time.to_string(),
+                    }) {
+                        Self::handle_action(action, self.config, on_tick_callbacks.clone())
+                    } else {
+                        None
+                    }
                 }
             }),
         )
@@ -228,9 +232,6 @@ impl PomodoroTimer<Interval> {
 
 impl PomodoroTimer<ShortBreak> {
     fn init(self) {
-        let on_tick_callbacks = self.callbacks.clone();
-        let on_timer_end = self.callbacks.on_timer_end.clone();
-
         let next_shared_state = PomodoroTimerState {
             round: self.shared_state.round + 1,
             postponed_count: self.shared_state.postponed_count,
@@ -238,36 +239,42 @@ impl PomodoroTimer<ShortBreak> {
 
         Timer::new(
             self.config.minor_break,
-            Box::new(move || {
-                let state = self.shared_state.clone();
-                (on_timer_end)(state, "Break is over");
+            Box::new({
+                let on_timer_end = self.callbacks.on_timer_end.clone();
+                move || {
+                    let state = self.shared_state.clone();
+                    (on_timer_end)(state, "Break is over");
+                }
             }),
-            Box::new(move |current_time| {
-                if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
-                    is_break: true,
-                    is_postponed: false,
-                    postpone_count: self.shared_state.postponed_count,
-                    round: self.shared_state.round,
-                    time: current_time.to_string(),
-                }) {
-                    if let PomodoroTimerAction::PostponeBreak = action {
-                        if !Self::can_postpone(self.config, self.shared_state) {
+            Box::new({
+                let on_tick_callbacks = self.callbacks.clone();
+                move |current_time| {
+                    if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
+                        is_break: true,
+                        is_postponed: false,
+                        postpone_count: self.shared_state.postponed_count,
+                        round: self.shared_state.round,
+                        time: current_time.to_string(),
+                    }) {
+                        if let PomodoroTimerAction::PostponeBreak = action {
+                            if !Self::can_postpone(self.config, self.shared_state) {
+                                return None;
+                            }
+
+                            let state = PomodoroTimerState {
+                                postponed_count: self.shared_state.postponed_count + 1,
+                                ..self.shared_state
+                            };
+
+                            Self::postpone(self.config, on_tick_callbacks.clone(), state);
+
                             return None;
                         }
 
-                        let state = PomodoroTimerState {
-                            postponed_count: self.shared_state.postponed_count + 1,
-                            ..self.shared_state
-                        };
-
-                        Self::postpone(self.config, on_tick_callbacks.clone(), state);
-
-                        return None;
+                        Self::handle_action(action, self.config, on_tick_callbacks.clone())
+                    } else {
+                        None
                     }
-
-                    Self::handle_action(action, self.config, on_tick_callbacks.clone())
-                } else {
-                    None
                 }
             }),
         )
@@ -303,9 +310,6 @@ impl PomodoroTimer<ShortBreak> {
 
 impl PomodoroTimer<LongBreak> {
     fn init(self) {
-        let on_tick_callbacks = self.callbacks.clone();
-        let on_timer_end = self.callbacks.on_timer_end.clone();
-
         let next_shared_state = PomodoroTimerState {
             round: self.shared_state.round + 1,
             postponed_count: self.shared_state.postponed_count,
@@ -313,36 +317,42 @@ impl PomodoroTimer<LongBreak> {
 
         Timer::new(
             self.config.major_break,
-            Box::new(move || {
-                let state = self.shared_state.clone();
-                (on_timer_end)(state, "Break is over");
+            Box::new({
+                let on_timer_end = self.callbacks.on_timer_end.clone();
+                move || {
+                    let state = self.shared_state.clone();
+                    (on_timer_end)(state, "Break is over");
+                }
             }),
-            Box::new(move |current_time| {
-                if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
-                    is_break: true,
-                    is_postponed: false,
-                    postpone_count: self.shared_state.postponed_count,
-                    round: self.shared_state.round,
-                    time: current_time.to_string(),
-                }) {
-                    if let PomodoroTimerAction::PostponeBreak = action {
-                        if !Self::can_postpone(self.config, self.shared_state) {
+            Box::new({
+                let on_tick_callbacks = self.callbacks.clone();
+                move |current_time| {
+                    if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
+                        is_break: true,
+                        is_postponed: false,
+                        postpone_count: self.shared_state.postponed_count,
+                        round: self.shared_state.round,
+                        time: current_time.to_string(),
+                    }) {
+                        if let PomodoroTimerAction::PostponeBreak = action {
+                            if !Self::can_postpone(self.config, self.shared_state) {
+                                return None;
+                            }
+
+                            let state = PomodoroTimerState {
+                                postponed_count: self.shared_state.postponed_count + 1,
+                                ..self.shared_state
+                            };
+
+                            Self::postpone(self.config, on_tick_callbacks.clone(), state);
+
                             return None;
                         }
 
-                        let state = PomodoroTimerState {
-                            postponed_count: self.shared_state.postponed_count + 1,
-                            ..self.shared_state
-                        };
-
-                        Self::postpone(self.config, on_tick_callbacks.clone(), state);
-
-                        return None;
+                        Self::handle_action(action, self.config, on_tick_callbacks.clone())
+                    } else {
+                        None
                     }
-
-                    Self::handle_action(action, self.config, on_tick_callbacks.clone())
-                } else {
-                    None
                 }
             }),
         )
@@ -378,23 +388,26 @@ impl PomodoroTimer<LongBreak> {
 
 impl PomodoroTimer<PostponedLongBreak> {
     fn init(self) {
-        let on_tick_callbacks = self.callbacks.clone();
-        let on_end = self.callbacks.on_timer_end.clone();
-
         Timer::new(
             self.config.postpone_timer,
-            Box::new(move || (on_end)(self.shared_state, "Postpone done - back to break")),
-            Box::new(move |current_time| {
-                if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
-                    is_break: false,
-                    is_postponed: true,
-                    postpone_count: self.shared_state.postponed_count,
-                    round: self.shared_state.round,
-                    time: current_time.to_string(),
-                }) {
-                    Self::handle_action(action, self.config, on_tick_callbacks.clone())
-                } else {
-                    None
+            Box::new({
+                let on_end = self.callbacks.on_timer_end.clone();
+                move || (on_end)(self.shared_state, "Postpone done - back to break")
+            }),
+            Box::new({
+                let on_tick_callbacks = self.callbacks.clone();
+                move |current_time| {
+                    if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
+                        is_break: false,
+                        is_postponed: true,
+                        postpone_count: self.shared_state.postponed_count,
+                        round: self.shared_state.round,
+                        time: current_time.to_string(),
+                    }) {
+                        Self::handle_action(action, self.config, on_tick_callbacks.clone())
+                    } else {
+                        None
+                    }
                 }
             }),
         )
@@ -416,23 +429,26 @@ impl PomodoroTimer<PostponedLongBreak> {
 
 impl PomodoroTimer<PostponedShortBreak> {
     fn init(self) {
-        let on_tick_callbacks = self.callbacks.clone();
-        let on_end = self.callbacks.on_timer_end.clone();
-
         Timer::new(
             self.config.postpone_timer,
-            Box::new(move || (on_end)(self.shared_state, "Postpone done - back to break")),
-            Box::new(move |current_time| {
-                if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
-                    is_break: false,
-                    is_postponed: true,
-                    postpone_count: self.shared_state.postponed_count,
-                    round: self.shared_state.round,
-                    time: current_time.to_string(),
-                }) {
-                    Self::handle_action(action, self.config, on_tick_callbacks.clone())
-                } else {
-                    None
+            Box::new({
+                let on_end = self.callbacks.on_timer_end.clone();
+                move || (on_end)(self.shared_state, "Postpone done - back to break")
+            }),
+            Box::new({
+                let on_tick_callbacks = self.callbacks.clone();
+                move |current_time| {
+                    if let Some(action) = (on_tick_callbacks.on_tick)(ViewState {
+                        is_break: false,
+                        is_postponed: true,
+                        postpone_count: self.shared_state.postponed_count,
+                        round: self.shared_state.round,
+                        time: current_time.to_string(),
+                    }) {
+                        Self::handle_action(action, self.config, on_tick_callbacks.clone())
+                    } else {
+                        None
+                    }
                 }
             }),
         )
