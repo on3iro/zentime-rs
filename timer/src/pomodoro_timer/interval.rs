@@ -1,6 +1,10 @@
 use std::marker::PhantomData;
 
-use crate::{config::PomodoroTimerConfig, timer::TimerTickHandler, Timer, TimerAction};
+use crate::{
+    config::PomodoroTimerConfig,
+    timer::{Paused, TimerTickHandler},
+    Timer, TimerAction,
+};
 
 use super::{
     long_break::LongBreak,
@@ -76,7 +80,7 @@ impl PomodoroTimer<Interval> {
     pub fn init(self) {
         let is_major_break = self.shared_state.round % self.config.intervals == 0;
 
-        Timer::new(
+        Timer::<Paused>::new(
             self.config.timer,
             Some(OnEndHandler {
                 on_timer_end: self.callbacks.on_timer_end.clone(),

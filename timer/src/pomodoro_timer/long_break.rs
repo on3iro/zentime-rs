@@ -1,8 +1,10 @@
 use std::marker::PhantomData;
 
 use crate::{
-    config::PomodoroTimerConfig, pomodoro_timer_action::PomodoroTimerAction,
-    timer::TimerTickHandler, Timer, TimerAction,
+    config::PomodoroTimerConfig,
+    pomodoro_timer_action::PomodoroTimerAction,
+    timer::{Paused, TimerTickHandler},
+    Timer, TimerAction,
 };
 
 use super::{
@@ -96,7 +98,7 @@ impl PomodoroTimer<LongBreak> {
             postponed_count: self.shared_state.postponed_count,
         };
 
-        Timer::new(
+        Timer::<Paused>::new(
             self.config.major_break,
             Some(OnEndHandler {
                 on_timer_end: self.callbacks.on_timer_end.clone(),

@@ -1,6 +1,10 @@
 use std::marker::PhantomData;
 
-use crate::{config::PomodoroTimerConfig, timer::TimerTickHandler, Timer, TimerAction};
+use crate::{
+    config::PomodoroTimerConfig,
+    timer::{Running, TimerTickHandler},
+    Timer, TimerAction,
+};
 
 use super::{
     on_end_handler::OnEndHandler,
@@ -48,7 +52,7 @@ impl TimerTickHandler for PostponeShortBreakTickHandler {
 
 impl PomodoroTimer<PostponedShortBreak> {
     pub(crate) fn init(self) {
-        Timer::new(
+        Timer::<Running>::new(
             self.config.postpone_timer,
             Some(OnEndHandler {
                 on_timer_end: self.callbacks.on_timer_end.clone(),
