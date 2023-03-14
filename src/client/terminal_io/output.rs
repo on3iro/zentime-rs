@@ -144,7 +144,7 @@ impl TerminalOut for MinimalInterface {
             "{}{}{} {} {}{}",
             ansi_move_cursor_to_start_of_line_escape,
             ansi_erase_line_escape,
-            timer.on_dark_red(),
+            if state.is_paused { timer.on_dark_green() } else { timer.on_dark_red() },
             round.green(),
             timer_kind,
             postponed_count
