@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use crate::{
     config::PomodoroTimerConfig,
-    timer::{Paused, TimerTickHandler},
+    timer::{Paused, TimerStatus, TimerTickHandler},
     Timer, TimerAction,
 };
 
@@ -31,7 +31,7 @@ impl PomodoroActionHandler<Interval> for IntervalTickHandler {
 }
 
 impl TimerTickHandler for IntervalTickHandler {
-    fn call(&mut self, current_time: crate::timer::CurrentTime) -> Option<TimerAction> {
+    fn call(&mut self, status: TimerStatus) -> Option<TimerAction> {
         let callbacks = self.pomodoro_timer.callbacks.clone();
         let state = self.pomodoro_timer.shared_state;
 
@@ -40,7 +40,8 @@ impl TimerTickHandler for IntervalTickHandler {
             is_postponed: false,
             postpone_count: state.postponed_count,
             round: state.round,
-            time: current_time.to_string(),
+            time: status.current_time.to_string(),
+            is_paused: status.is_paused,
         });
 
         if let Some(action) = result {

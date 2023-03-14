@@ -24,6 +24,16 @@ impl Display for CurrentTime {
     }
 }
 
+/// Status which is continouusly handed to the callback function on each tick
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimerStatus {
+    /// Current time of the timer
+    pub current_time: CurrentTime,
+
+    /// Denotes if timer is paused or running
+    pub is_paused: bool,
+}
+
 /// Empty trait implemented by structs (e.g. Paused, Running)
 pub trait TimerState {}
 
@@ -51,7 +61,7 @@ pub trait TimerEndHandler {
 /// Handler which is called on each timer tick
 pub trait TimerTickHandler {
     /// Callback
-    fn call(&mut self, current_time: CurrentTime) -> Option<TimerAction>;
+    fn call(&mut self, status: TimerStatus) -> Option<TimerAction>;
 }
 
 /// Timer which can either be in a paused state or a running state.
@@ -61,7 +71,7 @@ pub trait TimerTickHandler {
 /// ## Example
 ///
 /// ```
-/// use zentime_rs_timer::timer::{Timer, TimerEndHandler, TimerTickHandler, CurrentTime};
+/// use zentime_rs_timer::timer::{Timer, TimerEndHandler, TimerTickHandler, TimerStatus, Paused};
 /// use zentime_rs_timer::TimerAction;
 /// use std::thread;
 ///
@@ -77,15 +87,15 @@ pub trait TimerTickHandler {
 /// pub struct OnTickHandler {}
 ///
 /// impl TimerTickHandler for OnTickHandler {
-///     fn call(&mut self, current_time: CurrentTime) -> Option<TimerAction> {
-///         println!("{}", current_time);
+///     fn call(&mut self, status: TimerStatus) -> Option<TimerAction> {
+///         println!("{}", status.current_time);
 ///         None
 ///     }
 /// }
 ///
 /// // Run timer in its own thread so it does not block the current one
 /// thread::spawn(move || {
-///     Timer::new(
+///     Timer::<Paused>::new(
 ///         10,
 ///         Some(OnEndHandler {}),
 ///         Some(OnTickHandler {})
@@ -145,7 +155,10 @@ impl Timer<Paused> {
             let time = self.internal_state.remaining_time.as_secs();
 
             let Some(ref mut callback) = self.on_tick else { continue };
-            if let Some(action) = callback.call(CurrentTime(seconds_to_time(time))) {
+            if let Some(action) = callback.call(TimerStatus {
+                is_paused: true,
+                current_time: CurrentTime(seconds_to_time(time)),
+            }) {
                 match action {
                     TimerAction::PlayPause => {
                         self.unpause();
@@ -215,7 +228,10 @@ impl Timer<Running> {
             let time = (self.internal_state.target_time - Instant::now()).as_secs();
 
             let Some(ref mut callback) = self.on_tick else { continue };
-            if let Some(action) = callback.call(CurrentTime(seconds_to_time(time))) {
+            if let Some(action) = callback.call(TimerStatus {
+                is_paused: false,
+                current_time: CurrentTime(seconds_to_time(time)),
+            }) {
                 match action {
                     TimerAction::PlayPause => {
                         return self.pause();
