@@ -131,18 +131,24 @@ impl TerminalOut for MinimalInterface {
                 "Focus"
             }).to_string();
 
+        // TODO:
+        // * postpone command
+        // * suppress output from one shot commands as config flag
+        // * postpone should immediately start the postpone timer -> no play pause necessary
+
         let postponed_count = if state.is_postponed {
             format!(" ({})", state.postpone_count)
         } else {
-            // WHY:
-            // Because we use \r on the `print`-call below we need to overwrite
-            // enough characters with whitespace, such that they no longer appear
-            // if the result string is shorter than before
-            "                            ".to_string()
+            "".to_string()
         };
 
+        let ansi_erase_line_escape = "\x1B[2K";
+        let ansi_move_cursor_to_start_of_line_escape = "\r";
+
         print!(
-            "\r{} {} {}{}",
+            "{}{}{} {} {}{}",
+            ansi_move_cursor_to_start_of_line_escape,
+            ansi_erase_line_escape,
             timer.on_dark_red(),
             round.green(),
             timer_kind,
