@@ -175,6 +175,25 @@ impl Timer<Paused> {
 }
 
 impl Timer<Running> {
+    /// Creates a new timer in paused state.
+    /// You have to call [Self::init()] to start the timer
+    pub fn new<E, T>(time: u64, on_timer_end: Option<E>, on_tick: Option<T>) -> Self
+    where
+        E: TimerEndHandler + 'static,
+        T: TimerTickHandler + 'static,
+    {
+        let remaining_time = Duration::from_secs(time);
+
+        Self {
+            time,
+            on_timer_end: on_timer_end.map(|x| Box::new(x) as Box<dyn TimerEndHandler>),
+            on_tick: on_tick.map(|x| Box::new(x) as Box<dyn TimerTickHandler>),
+            internal_state: Running {
+                target_time: Instant::now() + remaining_time,
+            },
+        }
+    }
+
     /// Transitions the running timer into a paused timer state and calls `init()` on_interval_end
     /// it, so that the new timer is ready to receive an [TimerInputAction]
     fn pause(self) {
@@ -191,7 +210,7 @@ impl Timer<Running> {
 
     /// Runs the timer and awaits input.
     /// Depending on the input [TimerInputAction] the timer might transition into a paused state or skip to the next interval.
-    fn init(mut self) {
+    pub fn init(mut self) {
         while self.internal_state.target_time > Instant::now() {
             let time = (self.internal_state.target_time - Instant::now()).as_secs();
 

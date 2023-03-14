@@ -1,6 +1,10 @@
 use std::marker::PhantomData;
 
-use crate::{config::PomodoroTimerConfig, timer::TimerTickHandler, Timer, TimerAction};
+use crate::{
+    config::PomodoroTimerConfig,
+    timer::{Running, TimerTickHandler},
+    Timer, TimerAction,
+};
 
 use super::{
     long_break::LongBreak,
@@ -49,7 +53,7 @@ impl TimerTickHandler for PostponeLongBreakTickHandler {
 impl PomodoroTimer<PostponedLongBreak> {
     /// Starts the timer loop on a `PomodoroTimer<PostponedLongBreak>`
     pub fn init(self) {
-        Timer::new(
+        Timer::<Running>::new(
             self.config.postpone_timer,
             Some(OnEndHandler {
                 on_timer_end: self.callbacks.on_timer_end.clone(),

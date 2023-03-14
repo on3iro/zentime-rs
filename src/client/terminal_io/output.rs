@@ -131,10 +131,6 @@ impl TerminalOut for MinimalInterface {
                 "Focus"
             }).to_string();
 
-        // TODO:
-        // * suppress output from one shot commands as config flag
-        // * postpone should immediately start the postpone timer -> no play pause necessary
-
         let postponed_count = if state.is_postponed {
             format!(" ({})", state.postpone_count)
         } else {
