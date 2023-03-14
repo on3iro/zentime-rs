@@ -113,24 +113,24 @@ fn key_binding_info(is_break: bool) -> Tabs<'static> {
 fn timer_info(state: &ViewState) -> Paragraph {
     let rounds = format!("Round: {}", state.round);
     let timer_kind = if state.is_break {
-        "Break"
+        Span::styled("Break", Style::default().fg(Color::Yellow))
     } else if state.is_postponed {
-        "Postpone"
+        Span::styled("Postponed", Style::default().fg(Color::Red))
     } else {
-        "Focus"
+        Span::styled("Focus", Style::default().fg(Color::Blue))
     };
 
-    let postponed_count = if state.is_break || state.is_postponed {
-        format!(" ({})", state.postpone_count)
+    let postponed_count = if state.is_postponed {
+        Span::styled(
+            format!(" ({})", state.postpone_count),
+            Style::default().fg(Color::DarkGray),
+        )
     } else {
-        "".to_string()
+        Span::styled("", Style::default())
     };
 
     let info_text = vec![
-        Spans::from(Span::styled(
-            format!("{}{}", timer_kind, postponed_count),
-            Style::default().fg(Color::Red),
-        )),
+        Spans::from(vec![timer_kind, postponed_count]),
         Spans::from(vec![Span::styled(rounds, Style::default().fg(Color::Gray))]),
     ];
 
