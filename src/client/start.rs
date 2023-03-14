@@ -69,7 +69,12 @@ pub async fn start(config: Config) {
 fn init_interface(interface_type: String) -> Box<dyn TerminalOut + Send> {
     match interface_type.as_str() {
         "minimal" => match MinimalInterface::new() {
-            Ok(interface) => Box::new(interface),
+            Ok(interface) => {
+                // We move up one line to replace the initial prompt ending with our timer
+                let ansi_move_line_up_escape = "\x1B[A";
+                print!("{}", ansi_move_line_up_escape);
+                Box::new(interface)
+            },
             Err(error) => {
                 panic!("Could not initialize interface: {}", error);
             }

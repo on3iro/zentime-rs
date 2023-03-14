@@ -6,6 +6,7 @@ mod default_cmd;
 mod subcommands;
 use serde::{Deserialize, Serialize};
 use subcommands::{
+    postpone::postpone,
     query_server_once::query_server_once,
     reset_timer::reset_timer,
     server::{start_daemonized, status, stop},
@@ -154,6 +155,9 @@ enum Commands {
     /// Resets the timer to the first interval
     Reset,
 
+    /// Postpones the current break (if possible)
+    Postpone,
+
     /// Interact with the zentime server
     Server {
         #[command(subcommand)]
@@ -188,6 +192,10 @@ fn main() {
             ServerCommands::Stop => stop(),
             ServerCommands::Status => status(),
         },
+
+        Some(Commands::Postpone) => {
+            postpone();
+        }
 
         Some(Commands::Once) => {
             query_server_once();
