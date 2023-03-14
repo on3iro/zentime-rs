@@ -132,7 +132,6 @@ impl TerminalOut for MinimalInterface {
             }).to_string();
 
         // TODO:
-        // * postpone command
         // * suppress output from one shot commands as config flag
         // * postpone should immediately start the postpone timer -> no play pause necessary
 

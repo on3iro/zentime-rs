@@ -58,7 +58,7 @@ impl Default for ViewConfig {
     fn default() -> Self {
         Self {
             interface: "default".to_string(),
-            silent: false,
+            suppress_output: false,
         }
     }
 }

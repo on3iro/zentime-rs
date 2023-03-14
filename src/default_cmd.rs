@@ -1,10 +1,7 @@
-use crate::ClientConfig;
-use figment::providers::Serialized;
 use std::env::current_dir;
 use std::process;
 use sysinfo::Pid;
 use zentime_rs::client::start;
-use zentime_rs::config::create_base_config;
 use zentime_rs::config::Config;
 use zentime_rs::server::status::server_status;
 use zentime_rs::server::status::ServerStatus;
@@ -17,10 +14,7 @@ use tokio::process::Command;
 use crate::CommonArgs;
 
 #[tokio::main]
-pub async fn default_cmd(common_args: &CommonArgs, client_config: &ClientConfig) {
-    let config_path = &common_args.config;
-    let config: Config = get_client_config(config_path, client_config);
-
+pub async fn default_cmd(common_args: &CommonArgs, config: Config) {
     let system = System::new_all();
 
     // We need to spawn a server process before we can attach our client
@@ -114,11 +108,4 @@ fn get_server_args(common_args: &CommonArgs) -> Vec<String> {
     }
 
     args
-}
-
-fn get_client_config(config_path: &str, client_config: &ClientConfig) -> Config {
-    create_base_config(config_path)
-        .merge(Serialized::defaults(client_config))
-        .extract()
-        .expect("Could not create config")
 }
