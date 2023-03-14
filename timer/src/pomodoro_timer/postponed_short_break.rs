@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use crate::{
     config::PomodoroTimerConfig,
-    timer::{Running, TimerTickHandler},
+    timer::{Running, TimerStatus, TimerTickHandler},
     Timer, TimerAction,
 };
 
@@ -30,7 +30,7 @@ impl PomodoroActionHandler<PostponedShortBreak> for PostponeShortBreakTickHandle
 }
 
 impl TimerTickHandler for PostponeShortBreakTickHandler {
-    fn call(&mut self, current_time: crate::timer::CurrentTime) -> Option<TimerAction> {
+    fn call(&mut self, status: TimerStatus) -> Option<TimerAction> {
         let callbacks = self.pomodoro_timer.callbacks.clone();
         let state = self.pomodoro_timer.shared_state;
 
@@ -39,7 +39,8 @@ impl TimerTickHandler for PostponeShortBreakTickHandler {
             is_postponed: true,
             postpone_count: state.postponed_count,
             round: state.round,
-            time: current_time.to_string(),
+            time: status.current_time.to_string(),
+            is_paused: status.is_paused,
         });
 
         if let Some(action) = result {

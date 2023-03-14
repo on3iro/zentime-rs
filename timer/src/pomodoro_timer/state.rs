@@ -36,6 +36,9 @@ pub struct ViewState {
 
     /// Denotes the current time of the timer
     pub time: String,
+
+    /// Denotes if the timer is currently paused
+    pub is_paused: bool,
 }
 
 #[derive(Clone)]
