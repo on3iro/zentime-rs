@@ -4,6 +4,7 @@ use env_logger::Env;
 
 mod default_cmd;
 mod subcommands;
+use figment::providers::Serialized;
 use serde::{Deserialize, Serialize};
 use subcommands::{
     postpone::postpone,
@@ -13,6 +14,7 @@ use subcommands::{
     skip_timer::skip_timer,
     toggle_timer::toggle_timer,
 };
+use zentime_rs::config::{create_base_config, Config};
 
 #[derive(clap::Args)]
 pub struct CommonArgs {
@@ -109,6 +111,11 @@ struct ClapViewConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[arg(long, short = 'i', long_help = include_str!("./ViewConfig.md"), verbatim_doc_comment)]
     pub interface: Option<String>,
+
+    /// Suppresses the output of one-shot commands
+    /// (e.g. `zentime skip` or `zentime toggle-timer`)
+    #[arg(long, short = 's')]
+    pub silent: bool,
 }
 
 #[derive(clap::Args, Serialize, Deserialize, Clone, Debug)]
@@ -186,6 +193,19 @@ fn main() {
         .init();
     let cli = Cli::parse();
 
+    if let Some(Commands::Server { command }) = &cli.command {
+        match command {
+            ServerCommands::Start { common_args } => start_daemonized(common_args),
+            ServerCommands::Stop => stop(),
+            ServerCommands::Status => status(),
+        }
+
+        return;
+    }
+
+    let config_path = &cli.common_args.config;
+    let config: Config = get_client_config(config_path, &cli.client_config);
+
     match &cli.command {
         Some(Commands::Server { command }) => match command {
             ServerCommands::Start { common_args } => start_daemonized(common_args),
@@ -194,7 +214,7 @@ fn main() {
         },
 
         Some(Commands::Postpone) => {
-            postpone();
+            postpone(config.view.silent);
         }
 
         Some(Commands::Once) => {
@@ -202,17 +222,25 @@ fn main() {
         }
 
         Some(Commands::ToggleTimer) => {
-            toggle_timer();
+            toggle_timer(config.view.silent);
         }
 
         Some(Commands::Skip) => {
-            skip_timer();
+            skip_timer(config.view.silent);
         }
 
         Some(Commands::Reset) => {
-            reset_timer();
+            reset_timer(config.view.silent);
         }
 
-        None => default_cmd(&cli.common_args, &cli.client_config),
+        None => default_cmd(&cli.common_args, config),
     }
+}
+
+/// Creates the config relevant for client side commands
+fn get_client_config(config_path: &str, client_config: &ClientConfig) -> Config {
+    create_base_config(config_path)
+        .merge(Serialized::defaults(client_config))
+        .extract()
+        .expect("Could not create config")
 }
