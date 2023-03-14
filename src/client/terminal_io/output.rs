@@ -123,18 +123,18 @@ impl TerminalOut for MinimalInterface {
     fn render(&mut self, state: ViewState) -> anyhow::Result<()> {
         let timer = format!(" {} ", state.time.white());
         let round = format!("Round: {}", state.round);
-        let timer_kind = (if state.is_break {
-                "Break"
+        let timer_kind = if state.is_break {
+                "Break".yellow()
             } else if state.is_postponed {
-                "Postpone"
+                "Postpone".red()
             } else {
-                "Focus"
-            }).to_string();
+                "Focus".blue()
+            };
 
         let postponed_count = if state.is_postponed {
-            format!(" ({})", state.postpone_count)
+            format!(" ({})", state.postpone_count).dark_grey()
         } else {
-            "".to_string()
+            "".to_string().white()
         };
 
         let ansi_erase_line_escape = "\x1B[2K";
