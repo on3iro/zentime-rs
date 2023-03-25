@@ -13,3 +13,14 @@ postpone_timer = 10
 enable_bell = true
 volume = 0.5
 show_notification = true
+break_suggestions = [
+  "Do some push ups\nLet your eyes focus something in the distance-Fold worward and relax",
+  "Do chair pose\nDo tree pose-Do the 'tripple-thumb'",
+  "Do up-dog\nWalk a bit around-Rotate shoulders and arms",
+  "Stretch your shoulders and arms-Do a posture exercise",
+  "Do a twist and stretch",
+  "Do a warrior two",
+  "Do a nadi shodana",
+  "Do pigeon pose",
+  "Do a plank\nRotate Head-Do a childs pose",
+]

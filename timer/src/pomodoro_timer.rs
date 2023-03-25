@@ -19,4 +19,5 @@ mod postponed_short_break;
 mod short_break;
 mod state;
 
+pub use on_end_handler::TimerKind;
 pub use state::{PomodoroTimer, ViewState};

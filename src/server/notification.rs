@@ -27,33 +27,41 @@ pub enum NotificationDispatchError {
 /// Play a sound file and send an OS-notification.
 pub fn dispatch_notification(
     config: NotificationConfig,
-    notification_string: &str,
+    notification_string: Option<&str>,
+    should_show_suggestion: bool,
 ) -> Result<(), NotificationDispatchError> {
     if config.enable_bell {
         play(config.sound_file, config.volume)?;
     }
 
-    if config.show_notification {
-        let suggestions = match config.break_suggestions {
-            Some(suggestions) => suggestions,
-            None => vec![],
-        };
+    if !config.show_notification || notification_string.is_none() {
+        return Ok(());
+    };
 
-        let random_suggestion = suggestions.choose(&mut thread_rng());
+    let mut notification = notification_string.unwrap().to_string();
 
-        let mut notification = notification_string.to_string();
-
-        if let Some(suggestion) = random_suggestion {
-            if let Err(error) = write!(notification, "\n\n{}", suggestion) {
-                error!("Could not concatenate random suggestion to notification message");
-                return Err(NotificationDispatchError::OperatingSystemNotification(
-                    anyhow::Error::new(error),
-                ));
-            };
-        }
-
+    if !should_show_suggestion {
         send(&notification)?;
+        return Ok(());
     }
+
+    let suggestions = match config.break_suggestions {
+        Some(suggestions) => suggestions,
+        None => vec![],
+    };
+
+    let random_suggestion = suggestions.choose(&mut thread_rng());
+
+    if let Some(suggestion) = random_suggestion {
+        if let Err(error) = write!(notification, "\n\n{}", suggestion) {
+            error!("Could not concatenate random suggestion to notification message");
+            return Err(NotificationDispatchError::OperatingSystemNotification(
+                anyhow::Error::new(error),
+            ));
+        };
+    }
+
+    send(&notification)?;
 
     Ok(())
 }

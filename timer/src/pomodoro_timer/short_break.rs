@@ -13,6 +13,7 @@ use super::{
     on_tick_handler::{PomodoroActionHandler, PostponeHandlerConfig},
     postponed_short_break::PostponedShortBreak,
     state::{Callbacks, PomodoroState, PomodoroTimer, PomodoroTimerState, ViewState},
+    TimerKind,
 };
 
 /// Pomodoro timer state designating a short break
@@ -104,7 +105,8 @@ impl PomodoroTimer<ShortBreak> {
             Some(OnEndHandler {
                 on_timer_end: self.callbacks.on_timer_end.clone(),
                 state: self.shared_state,
-                notification: "Break is over",
+                notification: Some("Break is over"),
+                kind: TimerKind::Break,
             }),
             Some(ShortBreakTickHandler {
                 pomodoro_timer: self.clone(),

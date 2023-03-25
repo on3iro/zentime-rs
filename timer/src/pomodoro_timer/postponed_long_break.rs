@@ -11,6 +11,7 @@ use super::{
     on_end_handler::OnEndHandler,
     on_tick_handler::PomodoroActionHandler,
     state::{Callbacks, PomodoroState, PomodoroTimer, PomodoroTimerState, ViewState},
+    TimerKind,
 };
 
 /// Pomodoro timer state designating a postponed long break
@@ -59,7 +60,8 @@ impl PomodoroTimer<PostponedLongBreak> {
             Some(OnEndHandler {
                 on_timer_end: self.callbacks.on_timer_end.clone(),
                 state: self.shared_state,
-                notification: "Postpone done - back to break",
+                notification: None,
+                kind: TimerKind::Interval,
             }),
             Some(PostponeLongBreakTickHandler {
                 pomodoro_timer: self.clone(),

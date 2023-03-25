@@ -7,8 +7,8 @@ fn main() {
     thread::spawn(move || {
         PomodoroTimer::new(
             Default::default(),
-            Rc::new(move |state, msg| {
-                println!("{} {}", state.round, msg);
+            Rc::new(move |state, msg, _| {
+                println!("{} {}", state.round, msg.unwrap());
             }),
             Rc::new(move |view_state| {
                 println!("{:?}", view_state);

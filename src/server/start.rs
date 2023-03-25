@@ -9,7 +9,7 @@ use crossbeam::channel::{unbounded, Sender};
 use interprocess::local_socket::tokio::OwnedWriteHalf;
 use log::{error, info};
 use tokio::task::{spawn_blocking, yield_now};
-use zentime_rs_timer::pomodoro_timer::PomodoroTimer;
+use zentime_rs_timer::pomodoro_timer::{PomodoroTimer, TimerKind};
 use zentime_rs_timer::pomodoro_timer_action::PomodoroTimerAction;
 
 use std::rc::Rc;
@@ -84,10 +84,16 @@ async fn listen(config: Config, socket_name: &str) -> anyhow::Result<()> {
 
         PomodoroTimer::new(
             config.timers,
-            Rc::new(move |_, msg| {
-                if let Err(error) = dispatch_notification(config.clone().notifications, msg) {
+            Rc::new(move |_, msg, kind| {
+                let result = dispatch_notification(
+                    config.clone().notifications,
+                    msg,
+                    kind == TimerKind::Interval
+                );
+
+                if let Err(error) = result {
                     error!("{}", error);
-                };
+                }
             }),
             Rc::new(move |view_state| {
                 // Update the view
