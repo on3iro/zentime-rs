@@ -12,6 +12,7 @@ use super::{
     on_tick_handler::{OnTick, PomodoroActionHandler},
     short_break::ShortBreak,
     state::{Callbacks, PomodoroState, PomodoroTimer, PomodoroTimerState, ViewState},
+    TimerKind,
 };
 
 /// Pomodoro timer state designating a focus interval
@@ -86,7 +87,8 @@ impl PomodoroTimer<Interval> {
             Some(OnEndHandler {
                 on_timer_end: self.callbacks.on_timer_end.clone(),
                 state: self.shared_state,
-                notification: "Good job, take a break!",
+                notification: Some("Good job, take a break!"),
+                kind: TimerKind::Interval,
             }),
             Some(IntervalTickHandler {
                 pomodoro_timer: self.clone(),
