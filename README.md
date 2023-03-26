@@ -38,7 +38,7 @@ A simple terminal based pomodoro/productivity timer written in Rust.
 ### Homebrew
 
 ```ignore
-brew tap install on3iro/zentime
+brew tap on3iro/zentime
 brew install zentime
 ```
 
