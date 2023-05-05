@@ -17,4 +17,7 @@ pub enum PomodoroTimerAction {
 
     /// Postpone a break
     PostponeBreak,
+
+    /// Set current timer to a specific time in seconds
+    SetTimer(u64),
 }

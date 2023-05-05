@@ -59,6 +59,7 @@ impl PomodoroActionHandler<LongBreak> for LongBreakTickHandler {
             }
             PomodoroTimerAction::PlayPause => Some(TimerAction::PlayPause),
             PomodoroTimerAction::Skip => Some(TimerAction::End),
+            PomodoroTimerAction::SetTimer(time) => Some(TimerAction::SetTimer(time)),
 
             PomodoroTimerAction::ResetTimer => {
                 PomodoroTimer::<Interval>::reset(config, callbacks).init();

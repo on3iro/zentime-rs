@@ -227,6 +227,13 @@ async fn handle_client_to_server_msg(
         ClientToServerMsg::Sync => {
             info!("Client synced with server");
         }
+
+        // Set timer to a specific time
+        ClientToServerMsg::SetTimer(time) => {
+            timer_input_sender
+                .send(PomodoroTimerAction::SetTimer(time))
+                .context("Could not send SetTimer to timer")?;
+        },
     }
 
     Ok(CloseConnection::No)

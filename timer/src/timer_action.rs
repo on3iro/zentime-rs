@@ -3,6 +3,9 @@
 /// Various control actions to transition into new states
 #[derive(Debug, Copy, Clone)]
 pub enum TimerAction {
+    /// Set current timer to a specific time in seconds
+    SetTimer(u64),
+
     /// Either start or pause the current timer
     PlayPause,
 
