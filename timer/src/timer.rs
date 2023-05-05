@@ -160,6 +160,10 @@ impl Timer<Paused> {
                 current_time: CurrentTime(seconds_to_time(time)),
             }) {
                 match action {
+                    TimerAction::SetTimer(time) => {
+                        self.internal_state.remaining_time = Duration::from_secs(time)
+                    }
+
                     TimerAction::PlayPause => {
                         self.unpause();
                         break;
@@ -240,6 +244,9 @@ impl Timer<Running> {
                     // Returns from the blocking loop, so that the calling code
                     // can resume execution
                     TimerAction::End => return,
+                    TimerAction::SetTimer(time) => {
+                        self.internal_state.target_time = Instant::now() + Duration::from_secs(time)
+                    }
                 }
             }
         }

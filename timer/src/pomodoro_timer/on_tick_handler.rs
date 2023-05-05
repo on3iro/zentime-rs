@@ -37,6 +37,8 @@ pub trait PomodoroActionHandler<S: PomodoroState> {
                 None
             }
 
+            PomodoroTimerAction::SetTimer(time) => Some(TimerAction::SetTimer(time)),
+
             _ => None,
         }
     }

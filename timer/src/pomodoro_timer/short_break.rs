@@ -65,6 +65,8 @@ impl PomodoroActionHandler<ShortBreak> for ShortBreakTickHandler {
                 None
             }
 
+            PomodoroTimerAction::SetTimer(time) => Some(TimerAction::SetTimer(time)),
+
             _ => None,
         }
     }

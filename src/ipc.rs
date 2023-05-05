@@ -67,6 +67,9 @@ pub enum ClientToServerMsg {
 
     /// Command the server to postpone the current break, if possible
     PostPone,
+
+    /// Sets current timer to a specific time (in seconds)
+    SetTimer(u64)
 }
 
 /// Service handling communication between processes over the zentime socket.

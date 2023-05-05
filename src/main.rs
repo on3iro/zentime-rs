@@ -11,6 +11,7 @@ use subcommands::{
     query_server_once::query_server_once,
     reset_timer::reset_timer,
     server::{start_daemonized, status, stop},
+    set_timer::set_timer,
     skip_timer::skip_timer,
     toggle_timer::toggle_timer,
 };
@@ -165,6 +166,9 @@ enum Commands {
     /// Postpones the current break (if possible)
     Postpone,
 
+    /// Sets current timer to a specific time in seconds
+    SetTimer { time: u64 },
+
     /// Interact with the zentime server
     Server {
         #[command(subcommand)]
@@ -231,6 +235,10 @@ fn main() {
 
         Some(Commands::Reset) => {
             reset_timer(config.view.silent);
+        }
+
+        Some(Commands::SetTimer { time }) => {
+            set_timer(config.view.silent, time.to_owned());
         }
 
         None => default_cmd(&cli.common_args, config),
