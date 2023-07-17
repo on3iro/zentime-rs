@@ -24,7 +24,7 @@ pub async fn default_cmd(common_args: &CommonArgs, config: Config) {
         // the path to its executable. That way this does also work in ci or during
         // development, where one might not have added a specific zentime binary to their path.
         let current_process = system
-            .process(Pid::from(process::id() as i32))
+            .process(Pid::from(process::id() as usize))
             .expect("Could not retrieve information for current zentime process");
 
         let current_dir = current_dir()

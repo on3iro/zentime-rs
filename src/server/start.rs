@@ -183,6 +183,8 @@ async fn handle_client_to_server_msg(
 
             info!("Cleaning up socket file");
             let socket_name = get_socket_name();
+            info!("Socket name: {}", socket_name);
+
             remove_file(socket_name)
                 .await
                 .context("Could not remove existing socket file")?;
