@@ -2,7 +2,8 @@
 [<img alt="crates.io" src="https://img.shields.io/crates/v/zentime-rs.svg?style=for-the-badge&color=fc8d62&logo=rust" height="20">](https://crates.io/crates/zentime-rs)
 [<img alt="docs.rs" src="https://img.shields.io/docsrs/zentime-rs/latest?style=for-the-badge&logo=docs.rs" height="20">](https://docs.rs/zentime-rs/latest/zentime_rs/)
 
-> [!Important] Unfortunately I currently don't have time to dedicate to the project and especially to fix async issues which are present even in development.
+> [!Important]
+> Unfortunately I currently don't have time to dedicate to the project and especially to fix async issues which are present even in development.
 
 # TOC
 
